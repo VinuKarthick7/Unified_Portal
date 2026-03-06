@@ -6,12 +6,39 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 
-from .models import Unit, Topic, Material, MaterialVerification
+from .models import Domain, Unit, Topic, Material, MaterialVerification
 from .serializers import (
+    DomainSerializer,
     UnitSerializer, TopicSerializer,
     MaterialSerializer, MaterialVerificationSerializer,
 )
 from accounts.permissions import IsAdmin, IsAdminOrCoordinator
+
+
+# ── Domains ────────────────────────────────────────────────────────────────────
+
+class DomainListCreateView(generics.ListCreateAPIView):
+    """
+    GET  — any authenticated user can list domains.
+    POST — admin only (domain creation is a developer/admin task).
+    """
+    serializer_class = DomainSerializer
+    queryset = Domain.objects.prefetch_related('courses')
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsAdmin()]
+
+
+class DomainDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = DomainSerializer
+    queryset = Domain.objects.all()
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsAdmin()]
 
 
 # ── Units ────────────────────────────────────────────────────────────────────
@@ -121,10 +148,10 @@ class VerificationQueueView(generics.ListAPIView):
         status_filter = self.request.query_params.get('status', 'PENDING')
         qs = MaterialVerification.objects.filter(
             status=status_filter
-        ).select_related('material__topic__unit__course__department', 'material__uploaded_by')
-        # Coordinator: restrict to own department only
+        ).select_related('material__topic__unit__course', 'material__uploaded_by')
+        # Coordinator: restrict to own department only (M2M lookup)
         if user.role == 'COORDINATOR' and user.department_id:
-            qs = qs.filter(material__topic__unit__course__department=user.department)
+            qs = qs.filter(material__topic__unit__course__departments=user.department)
         return qs
 
 

@@ -1,6 +1,35 @@
 from django.db import models
 
 
+# ── Domain ────────────────────────────────────────────────────────────────────
+# Courses are grouped under academic domains (e.g. AI, Data Science, Networks).
+# Each domain has a 'Domain Mentor' (COORDINATOR role) responsible for
+# verifying teaching materials submitted for courses in that domain.
+
+class Domain(models.Model):
+    name = models.CharField(max_length=100, unique=True)          # e.g. "Artificial Intelligence"
+    code = models.CharField(max_length=20, blank=True)             # e.g. "AI"
+    description = models.TextField(blank=True)
+    # Domain Mentor — maps to COORDINATOR role in this system
+    mentor = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mentored_domains',
+        limit_choices_to={'role': 'COORDINATOR'},
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+# ── Unit ──────────────────────────────────────────────────────────────────────
+
 class Unit(models.Model):
     course = models.ForeignKey(
         'courses.Course',
@@ -19,10 +48,21 @@ class Unit(models.Model):
         return f"Unit {self.unit_number}: {self.title} ({self.course.code})"
 
 
+# ── Topic ─────────────────────────────────────────────────────────────────────
+
 class Topic(models.Model):
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='topics')
     topic_title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    # Per-spec: each topic has a planned duration and a stated learning outcome
+    planned_hours = models.DecimalField(
+        max_digits=4, decimal_places=1, default=1,
+        help_text='Total planned teaching hours for this topic.'
+    )
+    learning_outcome = models.TextField(
+        blank=True,
+        help_text='What students will understand or be able to do after this topic.'
+    )
     order = models.PositiveSmallIntegerField(default=1)
 
     class Meta:

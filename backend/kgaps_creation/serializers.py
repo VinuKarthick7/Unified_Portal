@@ -1,5 +1,19 @@
 from rest_framework import serializers
-from .models import Unit, Topic, Material, MaterialVerification
+from .models import Domain, Unit, Topic, Material, MaterialVerification
+
+
+class DomainSerializer(serializers.ModelSerializer):
+    mentor_name = serializers.CharField(source='mentor.get_full_name', read_only=True)
+    course_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Domain
+        fields = ['id', 'name', 'code', 'description', 'mentor', 'mentor_name',
+                  'course_count', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def get_course_count(self, obj):
+        return obj.courses.count()
 
 
 class MaterialVerificationSerializer(serializers.ModelSerializer):
@@ -33,12 +47,26 @@ class TopicSerializer(serializers.ModelSerializer):
     materials = MaterialSerializer(many=True, read_only=True)
     unit_title = serializers.CharField(source='unit.title', read_only=True)
     course_code = serializers.CharField(source='unit.course.code', read_only=True)
+    # Hours handled so far (sum of ALL approved handling entries for this topic)
+    hours_handled = serializers.SerializerMethodField()
 
     class Meta:
         model = Topic
-        fields = ['id', 'unit', 'unit_title', 'course_code',
-                  'topic_title', 'description', 'order', 'materials']
+        fields = [
+            'id', 'unit', 'unit_title', 'course_code',
+            'topic_title', 'description',
+            'planned_hours', 'learning_outcome',   # per-spec fields
+            'order', 'materials', 'hours_handled',
+        ]
         read_only_fields = ['id']
+
+    def get_hours_handled(self, obj):
+        from kgaps_handling.models import TopicHandling
+        from django.db.models import Sum
+        result = TopicHandling.objects.filter(
+            topic=obj, verification__status='APPROVED'
+        ).aggregate(total=Sum('hours_handled'))['total']
+        return float(result) if result else 0
 
 
 class UnitSerializer(serializers.ModelSerializer):

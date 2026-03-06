@@ -116,7 +116,11 @@ export default function Courses() {
                     style={{ borderColor: 'rgba(14,165,233,0.08)' }}>
                     <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: '#0284c7' }}>{c.code}</td>
                     <td className="px-4 py-3 font-medium text-gray-800">{c.name}</td>
-                    <td className="px-4 py-3" style={{ color: '#64748b' }}>{c.department_name}</td>
+                    <td className="px-4 py-3" style={{ color: '#64748b' }}>
+                      {Array.isArray(c.department_names)
+                        ? c.department_names.map(d => d.name).join(', ') || '—'
+                        : (c.department_names ?? '—')}
+                    </td>
                     <td className="px-4 py-3" style={{ color: '#64748b' }}>{c.semester ?? '—'}</td>
                     <td className="px-4 py-3" style={{ color: '#64748b' }}>{c.credits ?? '—'}</td>
                     <td className="px-4 py-3">
@@ -161,7 +165,7 @@ export default function Courses() {
                       <p className="font-medium text-gray-800">{a.course_name}</p>
                       <p className="text-xs font-mono mt-0.5" style={{ color: '#0284c7' }}>{a.course_code}</p>
                     </td>
-                    <td className="px-4 py-3" style={{ color: '#64748b' }}>{a.department_name}</td>
+                    <td className="px-4 py-3" style={{ color: '#64748b' }}>{a.department_names ?? '—'}</td>
                     <td className="px-4 py-3 font-semibold" style={{ color: '#334155' }}>{a.section}</td>
                     <td className="px-4 py-3" style={{ color: '#64748b' }}>{a.academic_year}</td>
                     <td className="px-4 py-3" style={{ color: '#64748b' }}>{a.semester ?? '—'}</td>

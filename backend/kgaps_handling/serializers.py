@@ -1,6 +1,45 @@
 from rest_framework import serializers
-from .models import TopicHandling, HandlingVerification
+from .models import TopicHandling, HandlingVerification, AssignmentTracker, CourseResult
 from kgaps_creation.serializers import TopicSerializer
+
+
+class AssignmentTrackerSerializer(serializers.ModelSerializer):
+    course_code = serializers.CharField(source='course_assignment.course.code', read_only=True)
+    course_name = serializers.CharField(source='course_assignment.course.name', read_only=True)
+    section = serializers.CharField(source='course_assignment.section', read_only=True)
+    faculty_name = serializers.CharField(
+        source='course_assignment.faculty.get_full_name', read_only=True
+    )
+
+    class Meta:
+        model = AssignmentTracker
+        fields = [
+            'id', 'course_assignment', 'course_code', 'course_name', 'section',
+            'faculty_name', 'title', 'sheet_url', 'completion_pct',
+            'last_synced_at', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'last_synced_at', 'created_at', 'updated_at']
+
+
+class CourseResultSerializer(serializers.ModelSerializer):
+    course_code = serializers.CharField(source='course_assignment.course.code', read_only=True)
+    course_name = serializers.CharField(source='course_assignment.course.name', read_only=True)
+    section = serializers.CharField(source='course_assignment.section', read_only=True)
+    faculty_name = serializers.CharField(
+        source='course_assignment.faculty.get_full_name', read_only=True
+    )
+    uploaded_by_name = serializers.CharField(
+        source='uploaded_by.get_full_name', read_only=True
+    )
+
+    class Meta:
+        model = CourseResult
+        fields = [
+            'id', 'course_assignment', 'course_code', 'course_name', 'section',
+            'faculty_name', 'result_sheet_url', 'pass_percentage', 'remarks',
+            'uploaded_by', 'uploaded_by_name', 'updated_at',
+        ]
+        read_only_fields = ['id', 'uploaded_by', 'updated_at']
 
 
 class HandlingVerificationSerializer(serializers.ModelSerializer):

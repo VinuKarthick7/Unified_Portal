@@ -5,15 +5,119 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.db.models import Sum, Count, Q
+from django.utils import timezone
 
-from .models import TopicHandling, HandlingVerification
+from .models import TopicHandling, HandlingVerification, AssignmentTracker, CourseResult
 from .serializers import (
     TopicHandlingSerializer,
     TopicHandlingCreateSerializer,
     HandlingVerificationSerializer,
     HandlingVerificationDetailSerializer,
+    AssignmentTrackerSerializer,
+    CourseResultSerializer,
 )
 from accounts.permissions import IsAdminOrHOD
+
+
+# ── Assignment Tracker ─────────────────────────────────────────────────────────
+
+class AssignmentTrackerListCreateView(generics.ListCreateAPIView):
+    """
+    GET  — Faculty sees own trackers. HOD/Admin see all (filterable by course_assignment).
+    POST — Faculty creates an assignment entry for their own course_assignment.
+    """
+    serializer_class = AssignmentTrackerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = AssignmentTracker.objects.select_related(
+            'course_assignment__faculty', 'course_assignment__course'
+        )
+        if user.role == 'FACULTY':
+            qs = qs.filter(course_assignment__faculty=user)
+        elif user.role == 'HOD' and user.department_id:
+            qs = qs.filter(course_assignment__course__departments=user.department)
+        ca = self.request.query_params.get('course_assignment')
+        if ca:
+            qs = qs.filter(course_assignment_id=ca)
+        return qs
+
+
+class AssignmentTrackerDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Faculty can edit/delete their own. Admin/HOD can patch completion_pct.
+    """
+    serializer_class = AssignmentTrackerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'FACULTY':
+            return AssignmentTracker.objects.filter(course_assignment__faculty=user)
+        return AssignmentTracker.objects.all()
+
+
+class SyncAssignmentCompletionView(APIView):
+    """
+    PATCH /handling/assignments/<pk>/sync/
+    Manually set completion_pct for an assignment tracker (faculty or admin).
+    In a production setup this would be called by an APScheduler job that
+    reads the Google Sheet and calculates the real percentage.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        tracker = get_object_or_404(AssignmentTracker, pk=pk)
+        # Only owner or admin can sync
+        if request.user.role == 'FACULTY' and tracker.course_assignment.faculty != request.user:
+            return Response({'detail': 'Not your assignment.'}, status=status.HTTP_403_FORBIDDEN)
+        pct = request.data.get('completion_pct')
+        if pct is None:
+            return Response({'detail': 'completion_pct is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            tracker.completion_pct = float(pct)
+            tracker.last_synced_at = timezone.now()
+            tracker.save(update_fields=['completion_pct', 'last_synced_at', 'updated_at'])
+        except ValueError:
+            return Response({'detail': 'completion_pct must be a number.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(AssignmentTrackerSerializer(tracker).data)
+
+
+# ── Course Result ─────────────────────────────────────────────────────────────────
+
+class CourseResultListCreateView(generics.ListCreateAPIView):
+    """
+    GET  — Faculty sees own results. HOD/Admin see all.
+    POST — Faculty submits the result sheet URL + pass percentage.
+    """
+    serializer_class = CourseResultSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = CourseResult.objects.select_related(
+            'course_assignment__faculty', 'course_assignment__course', 'uploaded_by'
+        )
+        if user.role == 'FACULTY':
+            qs = qs.filter(course_assignment__faculty=user)
+        elif user.role == 'HOD' and user.department_id:
+            qs = qs.filter(course_assignment__course__departments=user.department)
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(uploaded_by=self.request.user)
+
+
+class CourseResultDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CourseResultSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'FACULTY':
+            return CourseResult.objects.filter(course_assignment__faculty=user)
+        return CourseResult.objects.all()
 
 
 # ── Faculty: log and list handling entries ──────────────────────────────────
@@ -99,7 +203,7 @@ class ProgressView(APIView):
 
         assignments = CourseAssignment.objects.filter(
             faculty_id=faculty_id
-        ).select_related('course__department')
+        ).select_related('course').prefetch_related('course__departments')
 
         course_filter = request.query_params.get('course')
         if course_filter:

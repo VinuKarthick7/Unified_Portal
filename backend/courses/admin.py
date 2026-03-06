@@ -4,9 +4,14 @@ from .models import Course, CourseAssignment
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'department', 'semester', 'credits', 'is_active']
-    list_filter = ['department', 'semester', 'is_active']
+    list_display = ['code', 'name', 'get_departments', 'semester', 'credits', 'is_active']
+    list_filter = ['departments', 'semester', 'is_active']
     search_fields = ['code', 'name']
+    filter_horizontal = ['departments']
+
+    @admin.display(description='Departments')
+    def get_departments(self, obj):
+        return ', '.join(d.name for d in obj.departments.all()) or '—'
 
 
 @admin.register(CourseAssignment)

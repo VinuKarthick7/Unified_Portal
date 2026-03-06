@@ -4,9 +4,18 @@ from django.db import models
 class Course(models.Model):
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=20, unique=True)
-    department = models.ForeignKey(
+    # A course can belong to multiple departments (shared / common courses)
+    departments = models.ManyToManyField(
         'departments.Department',
-        on_delete=models.CASCADE,
+        related_name='courses',
+        blank=True,
+    )
+    # Domain links this course to an academic domain and its Domain Mentor
+    domain = models.ForeignKey(
+        'kgaps_creation.Domain',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='courses',
     )
     semester = models.PositiveSmallIntegerField()

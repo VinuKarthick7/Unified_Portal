@@ -13,10 +13,10 @@ class CourseListCreateView(generics.ListCreateAPIView):
     serializer_class = CourseSerializer
 
     def get_queryset(self):
-        qs = Course.objects.select_related('department').filter(is_active=True)
+        qs = Course.objects.prefetch_related('departments').filter(is_active=True)
         dept = self.request.query_params.get('department')
         if dept:
-            qs = qs.filter(department_id=dept)
+            qs = qs.filter(departments=dept)
         return qs
 
     def get_permissions(self):
@@ -44,9 +44,9 @@ class CourseAssignmentListCreateView(generics.ListCreateAPIView):
         # Faculty role: restrict to own assignments only
         if user.role == 'FACULTY':
             return qs.filter(faculty=user)
-        # HOD: restrict to own department
+        # HOD: restrict to own department (course can belong to multiple depts)
         if user.role == 'HOD' and user.department_id:
-            qs = qs.filter(course__department=user.department)
+            qs = qs.filter(course__departments=user.department)
         faculty = self.request.query_params.get('faculty')
         course = self.request.query_params.get('course')
         if faculty:
@@ -79,4 +79,4 @@ class MyAssignmentsView(generics.ListAPIView):
     def get_queryset(self):
         return CourseAssignment.objects.filter(
             faculty=self.request.user
-        ).select_related('course', 'course__department')
+        ).select_related('course').prefetch_related('course__departments')

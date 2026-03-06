@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    DomainListCreateView, DomainDetailView,
     UnitListCreateView, UnitDetailView,
     TopicListCreateView, TopicDetailView,
     MaterialListCreateView, MaterialDetailView,
@@ -8,6 +9,10 @@ from .views import (
 )
 
 urlpatterns = [
+    # Domains
+    path('domains/', DomainListCreateView.as_view(), name='domain_list'),
+    path('domains/<int:pk>/', DomainDetailView.as_view(), name='domain_detail'),
+
     # Course full structure tree
     path('structure/<int:course_pk>/', CourseStructureView.as_view(), name='course_structure'),
 
@@ -23,7 +28,7 @@ urlpatterns = [
     path('materials/', MaterialListCreateView.as_view(), name='material_list'),
     path('materials/<int:pk>/', MaterialDetailView.as_view(), name='material_detail'),
 
-    # Coordinator verification
+    # Coordinator (Domain Mentor) verification
     path('verifications/', VerificationQueueView.as_view(), name='verification_queue'),
     path('verifications/<int:pk>/action/', VerificationActionView.as_view(), name='verification_action'),
 ]

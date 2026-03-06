@@ -72,7 +72,9 @@ export default function KGAPSCreation() {
 
         {selectedCourseObj && (
           <span className="text-xs text-gray-400">
-            Dept: {selectedCourseObj.department_name} · Sem {selectedCourseObj.semester}
+            Dept: {Array.isArray(selectedCourseObj.department_names)
+              ? selectedCourseObj.department_names.map(d => d.name).join(', ') || '—'
+              : (selectedCourseObj.department_names ?? '—')} · Sem {selectedCourseObj.semester}
           </span>
         )}
       </div>

@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import Unit, Topic, Material, MaterialVerification
+from .models import Domain, Unit, Topic, Material, MaterialVerification
+
+
+@admin.register(Domain)
+class DomainAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'mentor', 'created_at']
+    search_fields = ['name', 'code']
 
 
 class TopicInline(admin.TabularInline):
@@ -10,14 +16,14 @@ class TopicInline(admin.TabularInline):
 @admin.register(Unit)
 class UnitAdmin(admin.ModelAdmin):
     list_display = ['course', 'unit_number', 'title']
-    list_filter = ['course__department']
+    list_filter = ['course__departments']
     search_fields = ['title', 'course__name']
     inlines = [TopicInline]
 
 
 @admin.register(Topic)
 class TopicAdmin(admin.ModelAdmin):
-    list_display = ['topic_title', 'unit', 'order']
+    list_display = ['topic_title', 'unit', 'planned_hours', 'order']
     list_filter = ['unit__course']
     search_fields = ['topic_title']
 
