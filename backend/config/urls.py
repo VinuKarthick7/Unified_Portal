@@ -30,4 +30,25 @@ urlpatterns = [
 
     # Courses & Assignments
     path('api/courses/', include('courses.urls')),
+
+    # KG-APS Creation Module
+    path('api/kgaps/creation/', include('kgaps_creation.urls')),
+
+    # KG-APS Handling Module
+    path('api/kgaps/handling/', include('kgaps_handling.urls')),
+
+    # Academic Scheduler
+    path('api/scheduler/', include('scheduler.urls')),
+
+    # Task Manager
+    path('api/tasks/', include('task_management.urls')),
+
+    # Faculty Appraisal
+    path('api/appraisal/', include('faculty_appraisal.urls')),
+
+    # Analytics + Cross-module Dashboard
+    path('api/analytics/', include('analytics.urls')),
+
+    # Notifications (Phase 4)
+    path('api/notifications/', include('notifications.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

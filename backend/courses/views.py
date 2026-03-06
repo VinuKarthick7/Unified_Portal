@@ -39,7 +39,14 @@ class CourseAssignmentListCreateView(generics.ListCreateAPIView):
     serializer_class = CourseAssignmentSerializer
 
     def get_queryset(self):
+        user = self.request.user
         qs = CourseAssignment.objects.select_related('faculty', 'course')
+        # Faculty role: restrict to own assignments only
+        if user.role == 'FACULTY':
+            return qs.filter(faculty=user)
+        # HOD: restrict to own department
+        if user.role == 'HOD' and user.department_id:
+            qs = qs.filter(course__department=user.department)
         faculty = self.request.query_params.get('faculty')
         course = self.request.query_params.get('course')
         if faculty:

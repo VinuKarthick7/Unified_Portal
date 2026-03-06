@@ -1,11 +1,23 @@
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 
-from .serializers import UserSerializer, UserProfileSerializer
+from .serializers import UserSerializer, UserProfileSerializer, FacultyMinimalSerializer, FlexTokenObtainPairSerializer
 from .permissions import IsAdmin
 
 User = get_user_model()
+
+
+class FlexTokenObtainPairView(APIView):
+    """Login with email or username."""
+    permission_classes = []
+
+    def post(self, request):
+        serializer = FlexTokenObtainPairSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -42,3 +54,24 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class FacultyListView(generics.ListAPIView):
+    """
+    Safe minimal faculty directory — accessible to any authenticated user.
+    Returns only id, name, email, department. Used for dropdown population
+    in swap requests, task assignment, etc.
+    Supports ?department=<id> and ?role=<role> query params.
+    """
+    serializer_class = FacultyMinimalSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = User.objects.filter(is_active=True).select_related('department').order_by('first_name')
+        role = self.request.query_params.get('role', 'FACULTY')
+        if role:
+            qs = qs.filter(role=role)
+        department = self.request.query_params.get('department')
+        if department:
+            qs = qs.filter(department_id=department)
+        return qs
