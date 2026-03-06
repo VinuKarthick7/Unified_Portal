@@ -12,6 +12,7 @@ export default function Dashboard() {
   // Admin users get their own visual dashboard
   useEffect(() => {
     if (user?.role === 'ADMIN') navigate('/admin-dashboard', { replace: true })
+    if (user?.role === 'FACULTY') navigate('/faculty-dashboard', { replace: true })
   }, [user?.role])
 
   useEffect(() => {

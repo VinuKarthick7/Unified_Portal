@@ -22,6 +22,7 @@ import HODInbox from './pages/dashboard/HODInbox'
 import MyDay from './pages/dashboard/MyDay'
 import Analytics from './pages/analytics/Analytics'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
+import FacultyDashboard from './pages/dashboard/FacultyDashboard'
 
 function App() {
   return (
@@ -168,6 +169,7 @@ function App() {
           <Route path="/my-day" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/admin-dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/faculty-dashboard" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyDashboard /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
