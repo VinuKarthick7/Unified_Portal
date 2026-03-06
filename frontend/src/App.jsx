@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import AppLayout from './components/AppLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import KGAPSCreation from './pages/kgaps/KGAPSCreation'
@@ -29,147 +30,127 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Public route */}
           <Route path="/login" element={<Login />} />
+
+          {/* All protected routes render inside AppLayout (sidebar + content) */}
           <Route
-            path="/"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <AppLayout />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/kgaps/creation"
-            element={
-              <ProtectedRoute>
-                <KGAPSCreation />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/kgaps/verification"
-            element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'COORDINATOR']}>
-                <VerificationQueue />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/kgaps/handling"
-            element={
-              <ProtectedRoute>
-                <KGAPSHandling />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/kgaps/handling/verify"
-            element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
-                <HandlingVerificationInbox />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/scheduler"
-            element={
-              <ProtectedRoute>
-                <Scheduler />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/scheduler/requests"
-            element={
-              <ProtectedRoute>
-                <SchedulerRequests />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/scheduler/setup"
-            element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
-                <TimetableSetup />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/tasks"
-            element={
-              <ProtectedRoute>
-                <Tasks />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/tasks/new"
-            element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
-                <TaskForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/tasks/:id"
-            element={
-              <ProtectedRoute>
-                <TaskDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/tasks/:id/edit"
-            element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
-                <TaskForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/departments"
-            element={
-              <ProtectedRoute>
-                <Departments />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/courses"
-            element={
-              <ProtectedRoute>
-                <Courses />
-              </ProtectedRoute>
-            }
-          />          <Route path="/appraisal"
-            element={
-              <ProtectedRoute>
-                <Appraisal />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/appraisal/templates/new"
-            element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
-                <AppraisalTemplateForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/appraisal/templates/:id/edit"
-            element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
-                <AppraisalTemplateForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/appraisal/submissions/:id"
-            element={
-              <ProtectedRoute>
-                <AppraisalDetail />
-              </ProtectedRoute>
-            }
-          />          <Route path="/hod-inbox" element={<ProtectedRoute allowedRoles={['ADMIN','HOD']}><HODInbox /></ProtectedRoute>} />
-          <Route path="/my-day" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="/admin-dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/faculty-dashboard" element={<ProtectedRoute allowedRoles={['FACULTY']}><FacultyDashboard /></ProtectedRoute>} />
+          >
+            <Route path="/" element={<Dashboard />} />
+
+            {/* KG-APS */}
+            <Route path="/kgaps/creation" element={<KGAPSCreation />} />
+            <Route
+              path="/kgaps/verification"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'COORDINATOR']}>
+                  <VerificationQueue />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/kgaps/handling" element={<KGAPSHandling />} />
+            <Route
+              path="/kgaps/handling/verify"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                  <HandlingVerificationInbox />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Scheduler */}
+            <Route path="/scheduler" element={<Scheduler />} />
+            <Route path="/scheduler/requests" element={<SchedulerRequests />} />
+            <Route
+              path="/scheduler/setup"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                  <TimetableSetup />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Tasks */}
+            <Route path="/tasks" element={<Tasks />} />
+            <Route
+              path="/tasks/new"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                  <TaskForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/tasks/:id" element={<TaskDetail />} />
+            <Route
+              path="/tasks/:id/edit"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                  <TaskForm />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Departments & Courses */}
+            <Route path="/departments" element={<Departments />} />
+            <Route path="/courses" element={<Courses />} />
+
+            {/* Appraisal */}
+            <Route path="/appraisal" element={<Appraisal />} />
+            <Route
+              path="/appraisal/templates/new"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                  <AppraisalTemplateForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/appraisal/templates/:id/edit"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                  <AppraisalTemplateForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/appraisal/submissions/:id" element={<AppraisalDetail />} />
+
+            {/* Dashboard extras */}
+            <Route
+              path="/hod-inbox"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                  <HODInbox />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/my-day" element={<MyDay />} />
+            <Route path="/analytics" element={<Analytics />} />
+
+            {/* Dedicated dashboards */}
+            <Route
+              path="/admin-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/faculty-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['FACULTY']}>
+                  <FacultyDashboard />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
+
+          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
