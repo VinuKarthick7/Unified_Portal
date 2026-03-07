@@ -113,6 +113,8 @@ class TopicHandlingSerializer(serializers.ModelSerializer):
     verification_remarks = serializers.CharField(
         source='verification.remarks', read_only=True, default=''
     )
+    # Annotated in the view's get_queryset; defaults to False when not present
+    is_taught_today = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
         model = TopicHandling
@@ -120,7 +122,7 @@ class TopicHandlingSerializer(serializers.ModelSerializer):
             'id', 'topic', 'topic_title', 'unit_title', 'course_code', 'course_name',
             'faculty', 'faculty_name', 'course_assignment', 'hours_handled',
             'date', 'notes', 'is_auto_generated', 'created_at',
-            'verification_status', 'verification_remarks',
+            'verification_status', 'verification_remarks', 'is_taught_today',
         ]
         read_only_fields = ['id', 'faculty', 'is_auto_generated', 'created_at']
 

@@ -83,7 +83,7 @@ export default function AdminDashboard() {
     ])
       .then(([s, t, w, d]) => {
         setSummary(s.data)
-        setTasks(Array.isArray(t.data) ? t.data : t.data?.by_department ?? [])
+        setTasks(Array.isArray(t.data) ? t.data : t.data?.dept_breakdown ?? [])
         setWorkload(Array.isArray(w.data) ? w.data : w.data?.trend ?? [])
         setDepts(Array.isArray(d.data) ? d.data : d.data?.departments ?? [])
       })
@@ -93,19 +93,23 @@ export default function AdminDashboard() {
 
   /* derive KPIs from summary */
   const s = summary ?? {}
-  const totalTasks = (s.tasks_total ?? 0) || tasks.reduce((a, d) => a + (d.total ?? 0), 0)
+  // Compute task breakdown totals from dept_breakdown when summary lacks them
+  const taskOpen       = tasks.reduce((a, d) => a + (d.open ?? 0), 0)
+  const taskInProgress = tasks.reduce((a, d) => a + (d.in_progress ?? 0), 0)
+  const taskOverdue    = tasks.reduce((a, d) => a + (d.overdue ?? 0), 0)
+  const totalTasks     = (s.tasks_total ?? 0) || tasks.reduce((a, d) => a + (d.open ?? 0) + (d.in_progress ?? 0) + (d.completed ?? 0) + (d.overdue ?? 0), 0)
 
   /* task status ring data */
   const ringData = [
     { name: 'Completed', value: s.tasks_completed ?? 0, color: C.emerald },
-    { name: 'In Progress', value: s.tasks_in_progress ?? 0, color: C.blue },
-    { name: 'Open', value: s.tasks_open ?? 0, color: C.amber },
-    { name: 'Overdue', value: s.tasks_overdue ?? 0, color: C.rose },
+    { name: 'In Progress', value: taskInProgress, color: C.blue },
+    { name: 'Open', value: taskOpen, color: C.amber },
+    { name: 'Overdue', value: taskOverdue, color: C.rose },
   ].filter(r => r.value > 0)
 
   /* stacked bar data per department */
   const deptTaskData = tasks.map(d => ({
-    name: d.department_name ?? d.name ?? 'Unknown',
+    name: d.dept ?? d.department_name ?? d.name ?? 'Unknown',
     Open: d.open ?? 0,
     'In Progress': d.in_progress ?? 0,
     Completed: d.completed ?? 0,
@@ -165,12 +169,11 @@ export default function AdminDashboard() {
           <SH>Institutional Snapshot</SH>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <KPI label="Departments"    value={s.departments   ?? depts.length}           color={C.indigo} />
-            <KPI label="Faculty"        value={s.faculty_count ?? s.total_faculty}         color={C.blue} />
-            <KPI label="Teaching Hrs"   value={s.total_hours   ?? s.teaching_hours}        color={C.teal}
-              sub={s.hours_this_month ? `${s.hours_this_month} this month` : undefined} />
+            <KPI label="Faculty"        value={s.faculty_count}                            color={C.blue} />
+            <KPI label="Teaching Hrs"   value={s.total_handling_hours != null ? Math.round(s.total_handling_hours) : '—'} color={C.teal} />
             <KPI label="Total Tasks"    value={totalTasks}                                 color={C.amber} />
             <KPI label="Completed"      value={s.tasks_completed}                          color={C.emerald} />
-            <KPI label="Appraisals"     value={s.appraisals_total ?? s.appraisals}         color={C.violet} />
+            <KPI label="Appraisals"     value={s.appraisals_total}                         color={C.violet} />
           </div>
         </section>
 
@@ -279,15 +282,17 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {depts.map((d, i) => {
-                    const total     = (d.tasks_total  ?? d.total_tasks ?? 0)
-                    const completed = (d.tasks_done   ?? d.completed   ?? 0)
-                    const open      = (d.tasks_open   ?? d.open        ?? 0)
-                    const overdue   = (d.tasks_overdue ?? d.overdue    ?? 0)
-                    const apprPct   = d.appraisal_completion ?? d.appraisal_pct ?? null
+                    const total     = (d.tasks_total ?? 0)
+                    const completed = (d.tasks_completed ?? 0)
+                    const overdue   = (d.tasks_overdue ?? 0)
+                    const open      = Math.max(0, total - completed - overdue)
+                    const apprPct   = d.appraisals_total > 0
+                      ? Math.round((d.appraisals_done / d.appraisals_total) * 100)
+                      : null
                     const color     = DEPT_COLORS[i % DEPT_COLORS.length]
 
                     return (
-                      <tr key={d.id ?? d.name}
+                      <tr key={d.dept_id ?? d.id ?? d.dept_name ?? d.name}
                         className="border-t transition-colors"
                         style={{ borderColor: 'rgba(0,0,0,0.05)' }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.03)'}
@@ -298,24 +303,25 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-2.5">
                             <div className="w-2 h-8 rounded-full shrink-0" style={{ background: color }} />
                             <div>
-                              <p className="font-semibold text-gray-800">{d.name}</p>
-                              {d.code && <p className="text-xs font-mono mt-0.5" style={{ color }}>{d.code}</p>}
+                              <p className="font-semibold text-gray-800">{d.dept_name ?? d.name}</p>
+                              {(d.dept_code ?? d.code) && <p className="text-xs font-mono mt-0.5" style={{ color }}>{d.dept_code ?? d.code}</p>}
                             </div>
                           </div>
                         </td>
 
                         {/* Faculty */}
                         <td className="px-5 py-4">
-                          <p className="font-semibold" style={{ color: '#1e293b' }}>{d.faculty_count ?? d.members ?? '—'}</p>
-                          {d.hod_name && <p className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>HOD: {d.hod_name}</p>}
+                          <p className="font-semibold" style={{ color: '#1e293b' }}>{d.faculty_count ?? '—'}</p>
                         </td>
 
                         {/* Hours */}
                         <td className="px-5 py-4">
-                          <p className="font-semibold" style={{ color: '#1e293b' }}>{d.total_hours ?? d.hours_taught ?? '—'}</p>
-                          {d.avg_hours_per_faculty != null &&
+                          <p className="font-semibold" style={{ color: '#1e293b' }}>
+                            {d.handling_hours != null ? Math.round(d.handling_hours) : '—'}
+                          </p>
+                          {d.faculty_count > 0 && d.handling_hours != null &&
                             <p className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>
-                              avg {d.avg_hours_per_faculty.toFixed(1)}/faculty
+                              avg {(d.handling_hours / d.faculty_count).toFixed(1)}/faculty
                             </p>
                           }
                         </td>

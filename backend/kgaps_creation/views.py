@@ -12,7 +12,7 @@ from .serializers import (
     UnitSerializer, TopicSerializer,
     MaterialSerializer, MaterialVerificationSerializer,
 )
-from accounts.permissions import IsAdmin, IsAdminOrCoordinator
+from accounts.permissions import IsAdmin, IsCoordinator
 
 
 # ── Domains ────────────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ class UnitListCreateView(generics.ListCreateAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
-        return [IsAdminOrCoordinator()]
+        return [IsCoordinator()]
 
 
 class UnitDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -66,7 +66,7 @@ class UnitDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
-        return [IsAdminOrCoordinator()]
+        return [IsCoordinator()]
 
 
 # ── Topics ───────────────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ class TopicListCreateView(generics.ListCreateAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
-        return [IsAdminOrCoordinator()]
+        return [IsCoordinator()]
 
 
 class TopicDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -97,7 +97,7 @@ class TopicDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
-        return [IsAdminOrCoordinator()]
+        return [IsCoordinator()]
 
 
 # ── Materials ─────────────────────────────────────────────────────────────────
@@ -113,13 +113,19 @@ class MaterialListCreateView(generics.ListCreateAPIView):
         topic = self.request.query_params.get('topic')
         if topic:
             qs = qs.filter(topic_id=topic)
-        # Faculty: only see materials for topics in courses they're assigned to
         if user.role == 'FACULTY':
+            # Faculty: only materials for courses they teach
             from courses.models import CourseAssignment
             assigned_course_ids = CourseAssignment.objects.filter(
                 faculty=user
             ).values_list('course_id', flat=True)
             qs = qs.filter(topic__unit__course_id__in=assigned_course_ids)
+        elif user.role == 'HOD' and user.department_id:
+            # HOD: materials for courses offered to their student department
+            qs = qs.filter(topic__unit__course__departments=user.department)
+        elif user.role == 'COORDINATOR':
+            # Coordinator: only materials for courses in their assigned Domain(s)
+            qs = qs.filter(topic__unit__course__domain__mentor=user)
         return qs
 
     @transaction.atomic
@@ -139,9 +145,9 @@ class MaterialDetailView(generics.RetrieveUpdateDestroyAPIView):
 # ── Verification ──────────────────────────────────────────────────────────────
 
 class VerificationQueueView(generics.ListAPIView):
-    """Admin sees all verifications. Coordinator sees only their department."""
+    """Coordinator sees only their Domain's materials."""
     serializer_class = MaterialVerificationSerializer
-    permission_classes = [IsAdminOrCoordinator]
+    permission_classes = [IsCoordinator]
 
     def get_queryset(self):
         user = self.request.user
@@ -149,15 +155,13 @@ class VerificationQueueView(generics.ListAPIView):
         qs = MaterialVerification.objects.filter(
             status=status_filter
         ).select_related('material__topic__unit__course', 'material__uploaded_by')
-        # Coordinator: restrict to own department only (M2M lookup)
-        if user.role == 'COORDINATOR' and user.department_id:
-            qs = qs.filter(material__topic__unit__course__departments=user.department)
+        qs = qs.filter(material__topic__unit__course__domain__mentor=user)
         return qs
 
 
 class VerificationActionView(APIView):
     """Coordinator approves or rejects a material."""
-    permission_classes = [IsAdminOrCoordinator]
+    permission_classes = [IsCoordinator]
 
     def patch(self, request, pk):
         verification = get_object_or_404(MaterialVerification, pk=pk)

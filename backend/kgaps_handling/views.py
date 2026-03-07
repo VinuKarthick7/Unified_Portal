@@ -4,8 +4,9 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, ExpressionWrapper, BooleanField, Exists, OuterRef
 from django.utils import timezone
+from datetime import date
 
 from .models import TopicHandling, HandlingVerification, AssignmentTracker, CourseResult
 from .serializers import (
@@ -16,7 +17,7 @@ from .serializers import (
     AssignmentTrackerSerializer,
     CourseResultSerializer,
 )
-from accounts.permissions import IsAdminOrHOD
+from accounts.permissions import IsAdminOrHOD, IsHOD
 
 
 # ── Assignment Tracker ─────────────────────────────────────────────────────────
@@ -135,9 +136,21 @@ class TopicHandlingListCreateView(generics.ListCreateAPIView):
         qs = TopicHandling.objects.select_related(
             'topic__unit__course', 'faculty', 'course_assignment', 'verification'
         )
-        # Faculty sees only their own entries; HOD/Admin see all
+        # Faculty sees only their own entries
         if user.role == 'FACULTY':
             qs = qs.filter(faculty=user)
+        elif user.role == 'HOD' and user.department_id:
+            # Student coverage scope: courses offered to HOD's students
+            qs = qs.filter(course_assignment__course__departments=user.department)
+        # Annotate each entry with is_taught_today for the KG-APS taught-today badge
+        from scheduler.models import DailyEntry
+        today = date.today()
+        taught_today_subquery = DailyEntry.objects.filter(
+            faculty=OuterRef('faculty'),
+            topic=OuterRef('topic'),
+            date=today,
+        )
+        qs = qs.annotate(is_taught_today=Exists(taught_today_subquery))
         course = self.request.query_params.get('course')
         if course:
             qs = qs.filter(topic__unit__course_id=course)
@@ -283,7 +296,7 @@ class HandlingVerificationQueueView(generics.ListAPIView):
 
 
 class HandlingVerificationActionView(APIView):
-    permission_classes = [IsAdminOrHOD]
+    permission_classes = [IsHOD]
 
     def patch(self, request, pk):
         verification = get_object_or_404(HandlingVerification, pk=pk)

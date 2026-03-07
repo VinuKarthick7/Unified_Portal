@@ -36,12 +36,19 @@ class TimetableSerializer(serializers.ModelSerializer):
     faculty_name = serializers.CharField(
         source='course_assignment.faculty.get_full_name', read_only=True
     )
+    faculty_department = serializers.CharField(
+        source='course_assignment.faculty.department.name', read_only=True, default=None
+    )
+    faculty_department_code = serializers.CharField(
+        source='course_assignment.faculty.department.code', read_only=True, default=None
+    )
 
     class Meta:
         model = Timetable
         fields = [
             'id', 'course_assignment', 'course_code', 'course_name',
-            'section', 'faculty_name', 'is_active', 'slots', 'created_at', 'updated_at',
+            'section', 'faculty_name', 'faculty_department', 'faculty_department_code',
+            'is_active', 'slots', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 

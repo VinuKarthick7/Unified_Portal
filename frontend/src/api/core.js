@@ -28,3 +28,8 @@ export const deleteUser        = (id)     => api.delete(`/users/${id}/`)
 // Safe minimal faculty directory — accessible to any authenticated role
 export const getFacultyList    = (params) => api.get('/users/faculty-list/', { params })
 
+// Profile
+export const getMyProfile      = ()       => api.get('/auth/me/')
+export const passwordChange    = (oldPassword, newPassword) =>
+  api.post('/auth/password-change/', { old_password: oldPassword, new_password: newPassword })
+

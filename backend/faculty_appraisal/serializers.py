@@ -83,6 +83,19 @@ class CriteriaScoreSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'criteria']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            # Hide HOD scores from faculty until the submission is COMPLETED
+            if user.role == 'FACULTY':
+                submission = instance.submission
+                if submission.status != AppraisalSubmission.STATUS_COMPLETED:
+                    data['hod_score'] = None
+                    data['hod_comment'] = None
+        return data
+
 
 class CriteriaScoreSelfUpdateSerializer(serializers.ModelSerializer):
     """Faculty updates self_score + self_comment only."""

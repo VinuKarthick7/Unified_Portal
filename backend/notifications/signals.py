@@ -7,9 +7,11 @@ Covered events
   TASK        • TaskAssignment created         → notify assignee
               • TaskAssignment status changed  → notify assigned_by (creator)
   HANDLING    • HandlingVerification APPROVED/REJECTED → notify faculty
-  SWAP        • SwapRequest APPROVED/REJECTED  → notify requester & target_faculty
+  MATERIAL    • MaterialVerification APPROVED/REJECTED → notify uploader
+  SWAP        • SwapRequest created            → notify target_faculty
+              • SwapRequest APPROVED/REJECTED  → notify requester & target_faculty
   EXTRA_CLASS • ExtraClass APPROVED/REJECTED   → notify faculty
-  APPRAISAL   • AppraisalSubmission status changed → notify faculty
+  APPRAISAL   • AppraisalSubmission status changed → notify faculty / HOD
 """
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
@@ -46,6 +48,7 @@ def _capture_old_status(sender, instance, **kwargs):
 for _sender_label in [
     'task_management.TaskAssignment',
     'kgaps_handling.HandlingVerification',
+    'kgaps_creation.MaterialVerification',
     'scheduler.SwapRequest',
     'scheduler.ExtraClass',
     'faculty_appraisal.AppraisalSubmission',
@@ -99,6 +102,25 @@ def on_handling_verification(sender, instance, created, **kwargs):
             category=Notification.Category.HANDLING,
             verb=verb,
             target_url='/kgaps/handling',
+        )
+
+
+# ── Material verification events ───────────────────────────────────────────
+@receiver(post_save, sender='kgaps_creation.MaterialVerification')
+def on_material_verification(sender, instance, created, **kwargs):
+    if created:
+        return
+    old_status = getattr(instance, '_pre_save_status', None)
+    if old_status and old_status != instance.status and instance.status in ('APPROVED', 'REJECTED'):
+        uploader = instance.material.uploaded_by
+        material_type = instance.material.get_material_type_display()
+        topic_title = instance.material.topic.topic_title
+        verb = f'Your {material_type} for "{topic_title}" was {instance.status.lower()}'
+        _notify(
+            recipient=uploader,
+            category=Notification.Category.SYSTEM,
+            verb=verb,
+            target_url='/kgaps/creation',
         )
 
 

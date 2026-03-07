@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { useLocation, Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
+import BottomNav from './BottomNav'
 import { useAuth } from '../context/AuthContext'
 
 function HamburgerIcon() {
@@ -42,6 +43,8 @@ export default function AppLayout() {
     if (p.startsWith('/analytics')) return 'Analytics'
     if (p.startsWith('/departments')) return 'Departments'
     if (p.startsWith('/courses')) return 'Courses'
+    if (p.startsWith('/notifications')) return 'Notifications'
+    if (p.startsWith('/profile')) return 'My Profile'
     return 'Portal'
   })()
 
@@ -72,9 +75,12 @@ export default function AppLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
           <Outlet />
         </main>
+
+        {/* Mobile bottom navigation */}
+        <BottomNav />
       </div>
     </div>
   )

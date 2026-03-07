@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ToastProvider } from './components/ui/Toast'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 import Login from './pages/Login'
@@ -23,15 +24,23 @@ import HODInbox from './pages/dashboard/HODInbox'
 import MyDay from './pages/dashboard/MyDay'
 import Analytics from './pages/analytics/Analytics'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
+import AcademicCalendar from './pages/scheduler/AcademicCalendar'
 import FacultyDashboard from './pages/dashboard/FacultyDashboard'
+import Notifications from './pages/notifications/Notifications'
+import Profile from './pages/profile/Profile'
+import Forbidden from './pages/errors/Forbidden'
+import NotFound from './pages/errors/NotFound'
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* Public route */}
-          <Route path="/login" element={<Login />} />
+        <ToastProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/403" element={<Forbidden />} />
+            <Route path="/404" element={<NotFound />} />
 
           {/* All protected routes render inside AppLayout (sidebar + content) */}
           <Route
@@ -48,7 +57,7 @@ function App() {
             <Route
               path="/kgaps/verification"
               element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'COORDINATOR']}>
+                <ProtectedRoute allowedRoles={['COORDINATOR']}>
                   <VerificationQueue />
                 </ProtectedRoute>
               }
@@ -57,7 +66,7 @@ function App() {
             <Route
               path="/kgaps/handling/verify"
               element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                <ProtectedRoute allowedRoles={['HOD']}>
                   <HandlingVerificationInbox />
                 </ProtectedRoute>
               }
@@ -67,9 +76,16 @@ function App() {
             <Route path="/scheduler" element={<Scheduler />} />
             <Route path="/scheduler/requests" element={<SchedulerRequests />} />
             <Route
-              path="/scheduler/setup"
+              path="/scheduler/calendar"
               element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AcademicCalendar />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/scheduler/setup"
+              element={
+                <ProtectedRoute allowedRoles={['HOD']}>
                   <TimetableSetup />
                 </ProtectedRoute>
               }
@@ -80,7 +96,7 @@ function App() {
             <Route
               path="/tasks/new"
               element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                <ProtectedRoute allowedRoles={['HOD']}>
                   <TaskForm />
                 </ProtectedRoute>
               }
@@ -89,7 +105,7 @@ function App() {
             <Route
               path="/tasks/:id/edit"
               element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                <ProtectedRoute allowedRoles={['HOD']}>
                   <TaskForm />
                 </ProtectedRoute>
               }
@@ -104,7 +120,7 @@ function App() {
             <Route
               path="/appraisal/templates/new"
               element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                <ProtectedRoute allowedRoles={['HOD']}>
                   <AppraisalTemplateForm />
                 </ProtectedRoute>
               }
@@ -112,7 +128,7 @@ function App() {
             <Route
               path="/appraisal/templates/:id/edit"
               element={
-                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
+                <ProtectedRoute allowedRoles={['HOD']}>
                   <AppraisalTemplateForm />
                 </ProtectedRoute>
               }
@@ -148,11 +164,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Profile & Notifications */}
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
 
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Catch-all → 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   )

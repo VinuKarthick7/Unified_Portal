@@ -10,9 +10,10 @@ import NotificationBell from './NotificationBell'
 
 /* ── SVG Icon helper ──────────────────────────────────────── */
 function Icon({ d, className = 'w-5 h-5' }) {
+  const paths = Array.isArray(d) ? d : [d]
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.7} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+      {paths.map((p, i) => <path key={i} strokeLinecap="round" strokeLinejoin="round" d={p} />)}
     </svg>
   )
 }
@@ -33,7 +34,10 @@ const IC = {
   graduationCap: 'M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5',
   magnify:    'M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.773 4.773zM21 12a9 9 0 11-18 0 9 9 0 0118 0z',
   checkDoc:   'M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12',
-  table:      'M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c-.621 0-1.125.504-1.125 1.125v1.5m2.25-2.625h7.5m-7.5 0A1.125 1.125 0 0110.875 12v1.5m1.125 0v-1.5m0 0h7.5m0 0c.621 0 1.125.504 1.125 1.125v1.5',
+  table:      [
+    'M8 3v2M16 3v2M4 5h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1zM3 9h18M7 12h.01M7 15.5h.01M11 12h.01M11 15.5h.01',
+    'M20 16.5a4 4 0 11-8 0 4 4 0 018 0zM16 14.5v2.5l1.5 1',
+  ],
   swap:       'M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5',
   sun:        'M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z',
   chevronLeft: 'M15.75 19.5L8.25 12l7.5-7.5',
@@ -41,62 +45,95 @@ const IC = {
   signout:    'M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75',
 }
 
-/* ── Nav item definitions per role ─────────────────────────── */
-function useNavItems() {
+/* ── Nav sections per role (grouped) ────────────────────────── */
+function useNavSections() {
   const { user } = useAuth()
   const role = user?.role
 
-  const allItems = {
+  const sections = {
     FACULTY: [
-      { label: 'Dashboard',         path: '/faculty-dashboard',  icon: IC.faculty  },
-      { label: 'Daily Log',          path: '/scheduler',           icon: IC.calendar },
-      { label: 'Upload Material',    path: '/kgaps/creation',      icon: IC.upload   },
-      { label: 'Teaching Progress',  path: '/kgaps/handling',      icon: IC.chart    },
-      { label: 'My Tasks',           path: '/tasks',               icon: IC.clipboard },
-      { label: 'Appraisal',          path: '/appraisal',           icon: IC.star     },
-      { label: 'Swap Requests',      path: '/scheduler/requests',  icon: IC.swap     },
+      { heading: null, items: [
+        { label: 'Dashboard',        path: '/faculty-dashboard', icon: IC.faculty   },
+      ]},
+      { heading: 'KG-APS', items: [
+        { label: 'Teaching Progress', path: '/kgaps/handling',   icon: IC.chart     },
+        { label: 'Upload Material',   path: '/kgaps/creation',   icon: IC.upload    },
+      ]},
+      { heading: 'Scheduler', items: [
+        { label: 'Daily Log',         path: '/scheduler',        icon: IC.calendar  },
+        { label: 'Swap Requests',     path: '/scheduler/requests',icon: IC.swap     },
+      ]},
+      { heading: 'Work', items: [
+        { label: 'My Tasks',          path: '/tasks',            icon: IC.clipboard },
+        { label: 'Appraisal',         path: '/appraisal',        icon: IC.star      },
+      ]},
     ],
     HOD: [
-      { label: 'Module Hub',         path: '/',                    icon: IC.home        },
-      { label: 'KG-APS Creation',    path: '/kgaps/creation',      icon: IC.book        },
-      { label: 'Verify Handling',    path: '/kgaps/handling/verify',icon: IC.checkDoc   },
-      { label: 'HOD Inbox',          path: '/hod-inbox',           icon: IC.inbox       },
-      { label: 'Scheduler',          path: '/scheduler',           icon: IC.calendar    },
-      { label: 'Timetable Setup',    path: '/scheduler/setup',     icon: IC.table       },
-      { label: 'Swap Requests',      path: '/scheduler/requests',  icon: IC.swap        },
-      { label: 'Tasks',              path: '/tasks',               icon: IC.clipboard   },
-      { label: 'Appraisal',          path: '/appraisal',           icon: IC.star        },
-      { label: 'Analytics',          path: '/analytics',           icon: IC.analytics   },
-      { label: 'Courses',            path: '/courses',             icon: IC.graduationCap},
+      { heading: null, items: [
+        { label: 'Module Hub',        path: '/',                 icon: IC.home      },
+        { label: 'HOD Inbox',         path: '/hod-inbox',        icon: IC.inbox     },
+      ]},
+      { heading: 'KG-APS', items: [
+        { label: 'Creation',          path: '/kgaps/creation',   icon: IC.book      },
+        { label: 'Verify Handling',   path: '/kgaps/handling/verify', icon: IC.checkDoc },
+      ]},
+      { heading: 'Scheduler', items: [
+        { label: 'Daily Logs',        path: '/scheduler',        icon: IC.calendar  },
+        { label: 'Timetable Setup',   path: '/scheduler/setup',  icon: IC.table     },
+        { label: 'Swap Requests',     path: '/scheduler/requests',icon: IC.swap     },
+      ]},
+      { heading: 'People', items: [
+        { label: 'Courses',           path: '/courses',          icon: IC.graduationCap },
+        { label: 'Tasks',             path: '/tasks',            icon: IC.clipboard  },
+        { label: 'Appraisal',         path: '/appraisal',        icon: IC.star       },
+        { label: 'Analytics',         path: '/analytics',        icon: IC.analytics  },
+      ]},
     ],
     ADMIN: [
-      { label: 'Admin Dashboard',    path: '/admin-dashboard',     icon: IC.chart       },
-      { label: 'Module Hub',         path: '/',                    icon: IC.home        },
-      { label: 'KG-APS Creation',    path: '/kgaps/creation',      icon: IC.book        },
-      { label: 'Material Verify',    path: '/kgaps/verification',  icon: IC.magnify     },
-      { label: 'Verify Handling',    path: '/kgaps/handling/verify',icon: IC.checkDoc   },
-      { label: 'HOD Inbox',          path: '/hod-inbox',           icon: IC.inbox       },
-      { label: 'Scheduler',          path: '/scheduler',           icon: IC.calendar    },
-      { label: 'Timetable Setup',    path: '/scheduler/setup',     icon: IC.table       },
-      { label: 'Swap Requests',      path: '/scheduler/requests',  icon: IC.swap        },
-      { label: 'Tasks',              path: '/tasks',               icon: IC.clipboard   },
-      { label: 'Appraisal',          path: '/appraisal',           icon: IC.star        },
-      { label: 'Departments',        path: '/departments',         icon: IC.building    },
-      { label: 'Courses',            path: '/courses',             icon: IC.graduationCap},
-      { label: 'Analytics',          path: '/analytics',           icon: IC.analytics   },
+      { heading: null, items: [
+        { label: 'Admin Dashboard',   path: '/admin-dashboard',  icon: IC.chart     },
+        { label: 'HOD Inbox',         path: '/hod-inbox',        icon: IC.inbox     },
+      ]},
+      { heading: 'KG-APS', items: [
+        { label: 'Creation',          path: '/kgaps/creation',   icon: IC.book      },
+      ]},
+      { heading: 'Scheduler', items: [
+        { label: 'Academic Calendar', path: '/scheduler/calendar', icon: IC.table  },
+      ]},
+      { heading: 'Admin', items: [
+        { label: 'Departments',       path: '/departments',      icon: IC.building  },
+        { label: 'Courses',           path: '/courses',          icon: IC.graduationCap },
+        { label: 'Tasks',             path: '/tasks',            icon: IC.clipboard  },
+        { label: 'Appraisal',         path: '/appraisal',        icon: IC.star       },
+        { label: 'Analytics',         path: '/analytics',        icon: IC.analytics  },
+      ]},
     ],
     COORDINATOR: [
-      { label: 'Module Hub',         path: '/',                    icon: IC.home        },
-      { label: 'KG-APS Creation',    path: '/kgaps/creation',      icon: IC.book        },
-      { label: 'Material Verify',    path: '/kgaps/verification',  icon: IC.magnify     },
-      { label: 'Scheduler',          path: '/scheduler',           icon: IC.calendar    },
-      { label: 'Swap Requests',      path: '/scheduler/requests',  icon: IC.swap        },
-      { label: 'Tasks',              path: '/tasks',               icon: IC.clipboard   },
-      { label: 'Analytics',          path: '/analytics',           icon: IC.analytics   },
+      { heading: null, items: [
+        { label: 'Module Hub',        path: '/',                 icon: IC.home      },
+      ]},
+      { heading: 'KG-APS', items: [
+        { label: 'Creation',          path: '/kgaps/creation',   icon: IC.book      },
+        { label: 'Material Verify',   path: '/kgaps/verification',icon: IC.magnify  },
+      ]},
+      { heading: 'Scheduler', items: [
+        { label: 'Scheduler',         path: '/scheduler',        icon: IC.calendar  },
+        { label: 'Swap Requests',     path: '/scheduler/requests',icon: IC.swap     },
+      ]},
+      { heading: 'Work', items: [
+        { label: 'Tasks',             path: '/tasks',            icon: IC.clipboard },
+        { label: 'Analytics',         path: '/analytics',        icon: IC.analytics },
+      ]},
     ],
   }
 
-  return allItems[role] ?? allItems.COORDINATOR
+  return sections[role] ?? sections.COORDINATOR
+}
+
+/* Legacy flat list (kept for tooltip purposes) */
+function useNavItems() {
+  const sections = useNavSections()
+  return sections.flatMap(s => s.items)
 }
 
 /* ── Sidebar Component ─────────────────────────────────────── */
@@ -104,12 +141,18 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
+  const navSections = useNavSections()
   const navItems = useNavItems()
   const [expanded, setExpanded] = useState(false)
 
   const isActive = path => {
     if (path === '/') return location.pathname === '/'
-    return location.pathname.startsWith(path)
+    const cur = location.pathname
+    const allPaths = navItems.map(i => i.path).filter(p => p !== '/')
+    const matches = allPaths.filter(p => cur === p || cur.startsWith(p + '/'))
+    if (!matches.length) return false
+    const best = matches.reduce((a, b) => a.length >= b.length ? a : b)
+    return path === best
   }
 
   const handleNav = path => {
@@ -117,78 +160,138 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     onMobileClose?.()
   }
 
-  const sidebarContent = (isMobile = false) => (
-    <div className={`flex flex-col h-full`}
+  /* Derive initials for avatar */
+  const initials = user?.full_name
+    ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    : (user?.username?.[0] ?? 'U').toUpperCase()
+
+  const roleLabel = { ADMIN: 'Administrator', HOD: 'Head of Dept', FACULTY: 'Faculty', COORDINATOR: 'Coordinator' }
+
+  const sidebarContent = (isMobile = false) => {
+    const show = expanded || isMobile
+    return (
+    <div className="flex flex-col h-full"
       style={{ width: isMobile ? 240 : (expanded ? 220 : 64), transition: 'width 0.22s ease' }}>
 
       {/* Logo / Brand */}
       <div className="flex items-center gap-3 px-4 py-5 shrink-0" style={{ minHeight: 64 }}>
-        <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center font-bold text-white text-sm"
+        <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
           style={{ background: 'linear-gradient(135deg, #6366f1, #0ea5e9)' }}>
-          F
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+          </svg>
         </div>
-        {(expanded || isMobile) && (
+        {show && (
           <div className="overflow-hidden">
             <p className="text-xs font-bold text-gray-900 leading-tight whitespace-nowrap">Faculty Portal</p>
-            <p className="text-[10px] text-gray-400 whitespace-nowrap">{user?.role}</p>
+            <p className="text-[10px] text-gray-400 whitespace-nowrap">{roleLabel[user?.role] ?? user?.role}</p>
           </div>
         )}
       </div>
 
       <div className="w-full h-px bg-gray-100 shrink-0" />
 
-      {/* Nav items */}
+      {/* Nav sections */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2">
-        {navItems.map(item => {
-          const active = isActive(item.path)
-          return (
-            <button key={item.path + item.label}
-              onClick={() => handleNav(item.path)}
-              title={!expanded && !isMobile ? item.label : undefined}
-              className={`relative w-full flex items-center gap-3 px-4 py-2.5 my-0.5 transition-all rounded-none group
-                ${active ? 'text-indigo-600 font-medium' : 'text-gray-500 hover:text-gray-800'}`}
-              style={{ background: active ? 'rgba(99,102,241,0.08)' : 'transparent' }}>
-              {/* Active indicator stripe */}
-              {active && (
-                <span className="absolute left-0 top-1/4 bottom-1/4 w-0.5 rounded-r-full bg-indigo-500" />
-              )}
-              <span className="shrink-0">
-                <Icon d={item.icon} className="w-5 h-5" />
-              </span>
-              {(expanded || isMobile) && (
-                <span className="text-xs font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                  {item.label}
-                </span>
-              )}
-              {/* Tooltip on collapsed */}
-              {!expanded && !isMobile && (
-                <span className="pointer-events-none opacity-0 group-hover:opacity-100 absolute left-14 z-50 px-2 py-1 rounded-md text-xs font-medium text-white whitespace-nowrap transition-opacity"
-                  style={{ background: '#1e293b' }}>
-                  {item.label}
-                </span>
-              )}
-            </button>
-          )
-        })}
+        {navSections.map((section, si) => (
+          <div key={si}>
+            {section.heading && show && (
+              <p className="px-4 pt-3 pb-1 text-[9px] font-bold uppercase tracking-widest text-gray-400 select-none">
+                {section.heading}
+              </p>
+            )}
+            {section.heading && !show && si > 0 && (
+              <div className="mx-3 my-1 h-px bg-gray-100" />
+            )}
+            {section.items.map(item => {
+              const active = isActive(item.path)
+              return (
+                <button key={item.path + item.label}
+                  onClick={() => handleNav(item.path)}
+                  title={!show ? item.label : undefined}
+                  className={`relative w-full flex items-center gap-3 px-4 py-2.5 my-0.5 transition-all rounded-none group
+                    ${active ? 'text-indigo-600 font-medium' : 'text-gray-500 hover:text-gray-800'}`}
+                  style={{ background: active ? 'rgba(99,102,241,0.08)' : 'transparent' }}>
+                  {active && (
+                    <span className="absolute left-0 top-1/4 bottom-1/4 w-0.5 rounded-r-full bg-indigo-500" />
+                  )}
+                  <span className="shrink-0">
+                    <Icon d={item.icon} className="w-5 h-5" />
+                  </span>
+                  {show && (
+                    <span className="text-xs font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                      {item.label}
+                    </span>
+                  )}
+                  {/* Tooltip on collapsed */}
+                  {!show && (
+                    <span className="pointer-events-none opacity-0 group-hover:opacity-100 absolute left-14 z-50 px-2 py-1 rounded-md text-xs font-medium text-white whitespace-nowrap transition-opacity"
+                      style={{ background: '#1e293b' }}>
+                      {item.label}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="w-full h-px bg-gray-100 shrink-0" />
 
       {/* User footer */}
       <div className="shrink-0 px-3 py-3 space-y-1">
+
+        {/* Profile link */}
+        <button onClick={() => handleNav('/profile')}
+          title={!show ? 'My Profile' : undefined}
+          className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all group">
+          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+            {initials}
+          </div>
+          {show && (
+            <div className="overflow-hidden flex-1 text-left">
+              <p className="text-xs font-semibold text-gray-800 truncate leading-tight">{user?.full_name || user?.username}</p>
+              <p className="text-[10px] text-gray-400 truncate">{user?.department_name || roleLabel[user?.role] || user?.role}</p>
+            </div>
+          )}
+          {!show && (
+            <span className="pointer-events-none opacity-0 group-hover:opacity-100 absolute left-14 z-50 px-2 py-1 rounded-md text-xs font-medium text-white whitespace-nowrap transition-opacity"
+              style={{ background: '#1e293b' }}>
+              My Profile
+            </span>
+          )}
+        </button>
+
+        {/* Notifications */}
+        <button onClick={() => handleNav('/notifications')}
+          title={!show ? 'Notifications' : undefined}
+          className="relative w-full flex items-center gap-3 px-2 py-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all group">
+          <span className="shrink-0"><Icon d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" className="w-5 h-5" /></span>
+          {show && <span className="text-xs font-medium">Notifications</span>}
+          {!show && (
+            <span className="pointer-events-none opacity-0 group-hover:opacity-100 absolute left-14 z-50 px-2 py-1 rounded-md text-xs font-medium text-white whitespace-nowrap transition-opacity"
+              style={{ background: '#1e293b' }}>
+              Notifications
+            </span>
+          )}
+        </button>
+
         {/* Sign out */}
         <button onClick={logout}
-          title={!expanded && !isMobile ? 'Sign out' : undefined}
+          title={!show ? 'Sign out' : undefined}
           className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all group">
-          <span className="shrink-0"><Icon d={IC.signout} className="w-4 h-4" /></span>
-          {(expanded || isMobile) && <span className="text-xs font-medium">Sign out</span>}
-          {!expanded && !isMobile && (
+          <span className="shrink-0"><Icon d={IC.signout} className="w-5 h-5" /></span>
+          {show && <span className="text-xs font-medium">Sign out</span>}
+          {!show && (
             <span className="pointer-events-none opacity-0 group-hover:opacity-100 absolute left-14 z-50 px-2 py-1 rounded-md text-xs font-medium text-white whitespace-nowrap transition-opacity"
               style={{ background: '#1e293b' }}>
               Sign out
             </span>
           )}
         </button>
+
         {/* Expand/collapse toggle */}
         {!isMobile && (
           <button onClick={() => setExpanded(!expanded)}
@@ -204,7 +307,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
         )}
       </div>
     </div>
-  )
+  )}
 
   return (
     <>

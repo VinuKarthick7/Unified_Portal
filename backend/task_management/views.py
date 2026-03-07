@@ -15,7 +15,7 @@ from .serializers import (
     TaskAttachmentSerializer,
     SubTaskSerializer, TaskHistorySerializer,
 )
-from accounts.permissions import IsAdminOrHOD
+from accounts.permissions import IsHOD
 
 
 def _record_history(task, actor, action, detail=''):
@@ -30,7 +30,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsAdminOrHOD()]
+            return [IsHOD()]
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
@@ -70,8 +70,14 @@ class TaskListCreateView(generics.ListCreateAPIView):
         return qs.distinct()
 
     def perform_create(self, serializer):
-        task = serializer.save(created_by=self.request.user)
-        _record_history(task, self.request.user, 'CREATED', f'Task "{task.title}" created.')
+        user = self.request.user
+        # HOD can only create tasks for their own department
+        if user.role == 'HOD' and user.department:
+            serializer.save(created_by=user, department=user.department)
+        else:
+            serializer.save(created_by=user)
+        task = serializer.instance
+        _record_history(task, user, 'CREATED', f'Task "{task.title}" created.')
 
 
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -89,7 +95,7 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_permissions(self):
         if self.request.method in ('PUT', 'PATCH', 'DELETE'):
-            return [IsAdminOrHOD()]
+            return [IsHOD()]
         return [IsAuthenticated()]
 
 

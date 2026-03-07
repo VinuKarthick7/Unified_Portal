@@ -11,7 +11,7 @@ from .serializers import (
     DailyEntrySerializer, DailyEntryCreateSerializer,
     SwapRequestSerializer, ExtraClassSerializer,
 )
-from accounts.permissions import IsAdminOrHOD
+from accounts.permissions import IsHOD
 
 
 # ── Periods ──────────────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ class PeriodListView(generics.ListAPIView):
 # ── Timetable ─────────────────────────────────────────────────────────────────
 
 class TimetableListView(generics.ListAPIView):
-    """List timetables. Faculty sees own; HOD/Admin sees all."""
+    """List timetables. Faculty sees own; HOD sees dept (student coverage); Admin sees all."""
     serializer_class = TimetableSerializer
     permission_classes = [IsAuthenticated]
 
@@ -36,6 +36,9 @@ class TimetableListView(generics.ListAPIView):
         ).prefetch_related('slots__period')
         if user.role == 'FACULTY':
             return qs.filter(course_assignment__faculty=user)
+        if user.role == 'HOD' and user.department_id:
+            # Student coverage scope: courses offered to this dept's students
+            return qs.filter(course_assignment__course__departments=user.department)
         return qs
 
 
@@ -53,7 +56,7 @@ class TimetableCreateUpdateView(APIView):
     POST: Create or replace a timetable for a course_assignment.
     Accepts {course_assignment: id, slots: [{day_of_week, period, room}]}
     """
-    permission_classes = [IsAdminOrHOD]
+    permission_classes = [IsHOD]
 
     @transaction.atomic
     def post(self, request):
@@ -107,7 +110,15 @@ class DailyEntryListCreateView(generics.ListCreateAPIView):
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(faculty=self.request.user)
+        from courses.models import CourseAssignment
+        from rest_framework.exceptions import PermissionDenied, ValidationError
+        user = self.request.user
+        ca_id = serializer.validated_data.get('course_assignment')
+        if ca_id is not None:
+            ca_id_val = ca_id.id if hasattr(ca_id, 'id') else ca_id
+            if not CourseAssignment.objects.filter(pk=ca_id_val, faculty=user).exists():
+                raise PermissionDenied('You can only log entries for your own course assignments.')
+        serializer.save(faculty=user)
 
 
 class DailyEntryDetailView(generics.RetrieveDestroyAPIView):
@@ -157,11 +168,20 @@ class SwapRequestActionView(APIView):
             )
 
         user = request.user
-        is_hod_admin = user.role in ('HOD', 'ADMIN')
+        is_admin = user.role == 'ADMIN'
+        is_hod = user.role == 'HOD'
         is_target = swap.target_faculty == user
         is_requester = swap.requester == user and new_status == 'CANCELLED'
 
-        if not (is_hod_admin or is_target or is_requester):
+        # HOD can only act on swaps within their own department (management scope)
+        if is_hod:
+            if not user.department_id or swap.requester.department_id != user.department_id:
+                return Response(
+                    {'detail': 'You can only manage swap requests for faculty in your department.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        if not (is_admin or is_hod or is_target or is_requester):
             return Response(
                 {'detail': 'You do not have permission to act on this swap request.'},
                 status=status.HTTP_403_FORBIDDEN,
@@ -196,7 +216,7 @@ class ExtraClassListCreateView(generics.ListCreateAPIView):
 
 class ExtraClassActionView(APIView):
     """PATCH /api/scheduler/extra-classes/<pk>/action/ — HOD approves/rejects."""
-    permission_classes = [IsAdminOrHOD]
+    permission_classes = [IsHOD]
 
     def patch(self, request, pk):
         extra = get_object_or_404(ExtraClass, pk=pk)

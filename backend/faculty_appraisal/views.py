@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdminOrHOD
+from accounts.permissions import IsHOD
 from .models import AppraisalTemplate, AppraisalCriteria, AppraisalSubmission, CriteriaScore
 from .serializers import (
     AppraisalTemplateListSerializer, AppraisalTemplateSerializer,
@@ -47,6 +47,17 @@ class AppraisalTemplateListCreateView(generics.ListCreateAPIView):
         if self.request.user.role not in ('ADMIN', 'HOD'):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Only HOD/Admin can create templates.')
+        user = self.request.user
+        # HOD can only create templates for their own department (or institution-wide)
+        if user.role == 'HOD' and user.department:
+            dept_in_data = serializer.validated_data.get('department')
+            if dept_in_data and dept_in_data != user.department:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('You can only create templates for your own department.')
+            if dept_in_data is None:
+                # Default to their own dept for HOD
+                serializer.save(created_by=user, department=user.department)
+                return
         serializer.save(created_by=self.request.user)
 
 
@@ -77,7 +88,7 @@ class AppraisalTemplateDetailView(generics.RetrieveUpdateDestroyAPIView):
 # --------------------------------------------------------------------------- #
 class AppraisalCriteriaListCreateView(generics.ListCreateAPIView):
     serializer_class   = AppraisalCriteriaSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrHOD]
+    permission_classes = [IsAuthenticated, IsHOD]
 
     def get_queryset(self):
         return AppraisalCriteria.objects.filter(template_id=self.kwargs['template_pk'])
@@ -89,7 +100,7 @@ class AppraisalCriteriaListCreateView(generics.ListCreateAPIView):
 
 class AppraisalCriteriaDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = AppraisalCriteriaSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrHOD]
+    permission_classes = [IsAuthenticated, IsHOD]
 
     def get_queryset(self):
         return AppraisalCriteria.objects.filter(template_id=self.kwargs['template_pk'])

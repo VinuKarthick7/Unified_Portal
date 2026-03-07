@@ -403,8 +403,16 @@ export default function KGAPSHandling() {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 text-xs max-w-[180px] truncate" title={e.topic_title}>
-                        <span className="text-gray-400">{e.unit_title} › </span>{e.topic_title}
+                      <td className="px-4 py-3 text-gray-700 text-xs max-w-[200px]" title={e.topic_title}>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="truncate"><span className="text-gray-400">{e.unit_title} › </span>{e.topic_title}</span>
+                          {e.is_taught_today && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap flex-shrink-0">
+                              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                              Taught Today
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-gray-700 text-xs font-medium">{e.hours_handled}h</td>
                       <td className="px-4 py-3">
