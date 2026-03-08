@@ -406,6 +406,9 @@ class ModuleSummaryView(APIView):
             User.objects.filter(role='FACULTY').count()
         )
 
+        from departments.models import Department
+        dept_count = 1 if dept else Department.objects.count()
+
         return Response({
             'total_handling_hours': float(total_hours),
             'tasks_total': tasks_total,
@@ -413,6 +416,7 @@ class ModuleSummaryView(APIView):
             'appraisals_total': ap_qs.count(),
             'appraisals_completed': ap_qs.filter(status='COMPLETED').count(),
             'faculty_count': faculty_count,
+            'departments': dept_count,
         })
 
 
@@ -534,7 +538,7 @@ class WorkloadTrendView(APIView):
         )
 
         # Build full 6-month list (fill zeros for months with no data)
-        data_map = {r['month'].date().strftime('%b %Y'): float(r['hours'] or 0) for r in rows}
+        data_map = {r['month'].strftime('%b %Y'): float(r['hours'] or 0) for r in rows}
         result = []
         for i in range(6):
             m_date = month_offset(today, 5 - i)

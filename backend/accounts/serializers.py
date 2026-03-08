@@ -68,7 +68,10 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    department_name = serializers.CharField(source='department.name', read_only=True)
+    department_name = serializers.SerializerMethodField()
+
+    def get_department_name(self, obj):
+        return obj.department.name if obj.department else None
 
     class Meta:
         model = User
@@ -79,7 +82,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class FacultyMinimalSerializer(serializers.ModelSerializer):
     """Minimal public profile — safe to expose to any authenticated user for dropdowns."""
-    department_name = serializers.CharField(source='department.name', read_only=True, default=None)
+    department_name = serializers.SerializerMethodField()
+
+    def get_department_name(self, obj):
+        return obj.department.name if obj.department else None
 
     class Meta:
         model = User
