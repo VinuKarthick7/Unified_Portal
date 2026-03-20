@@ -27,12 +27,13 @@ export default function TaskForm() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // Load departments + all faculty
+  // Load departments + all assignable staff (faculty, HOD, coordinator)
   useEffect(() => {
-    Promise.all([getDepartments(), getFacultyList({ role: 'FACULTY' })])
+    Promise.all([getDepartments(), getFacultyList()])
       .then(([d, f]) => {
         setDepartments(d.data)
-        setFaculties(f.data)
+        // Exclude ADMIN — tasks are assigned to operational staff only
+        setFaculties(f.data.filter(u => u.role !== 'ADMIN'))
       })
       .catch(() => {})
   }, [])
@@ -181,13 +182,13 @@ export default function TaskForm() {
         {/* Assignees */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Assign to Faculty
+            Assign to Staff
             <span className="ml-2 text-xs text-gray-400 font-normal">
               {form.assignees.length} selected
             </span>
           </label>
           {faculties.length === 0 ? (
-            <p className="text-sm text-gray-400">No faculty found.</p>
+            <p className="text-sm text-gray-400">No staff found.</p>
           ) : (
             <div className="border border-gray-200 rounded-xl max-h-44 overflow-y-auto divide-y divide-gray-50">
               {faculties.map((f) => {
@@ -198,8 +199,15 @@ export default function TaskForm() {
                     <input type="checkbox" checked={checked} onChange={() => toggleAssignee(f.id)}
                       className="rounded border-gray-300 text-blue-600" />
                     <div>
-                      <p className="text-sm text-gray-800">{f.first_name} {f.last_name}</p>
-                      <p className="text-xs text-gray-400">{f.email}</p>
+                      <p className="text-sm text-gray-800">
+                        {f.first_name} {f.last_name}
+                        <span className={`ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase ${
+                          f.role === 'HOD' ? 'bg-purple-100 text-purple-700'
+                          : f.role === 'COORDINATOR' ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-600'
+                        }`}>{f.role}</span>
+                      </p>
+                      <p className="text-xs text-gray-400">{f.email} {f.department_name ? `· ${f.department_name}` : ''}</p>
                     </div>
                   </label>
                 )

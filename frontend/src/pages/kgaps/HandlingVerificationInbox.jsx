@@ -5,100 +5,12 @@ import Badge from '../../components/Badge'
 const TABS = ['PENDING', 'APPROVED', 'REJECTED']
 const VARIANT = { PENDING: 'pending', APPROVED: 'approved', REJECTED: 'rejected' }
 
-function EntryCard({ entry, onAction }) {
-  const [remarks, setRemarks] = useState('')
-  const [loading, setLoading] = useState(null) // 'APPROVED' | 'REJECTED'
-
-  const handle = async (status) => {
-    setLoading(status)
-    try {
-      await verifyHandling(entry.id, { status, remarks })
-      onAction()
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Action failed.')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  const isPending = entry.status === 'PENDING'
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3">
-      {/* Top row */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-semibold text-gray-800 text-sm">
-            {entry.faculty_name}
-          </p>
-          <p className="text-xs text-gray-500">{entry.course_code} — Sec {entry.section}</p>
-        </div>
-        <Badge label={entry.status} variant={VARIANT[entry.status]} />
-      </div>
-
-      {/* Topic detail */}
-      <div className="text-sm text-gray-700">
-        <span className="text-xs text-gray-400">{entry.unit_title} › </span>
-        <span className="font-medium">{entry.topic_title}</span>
-      </div>
-
-      {/* Meta row */}
-      <div className="flex items-center gap-4 text-xs text-gray-500">
-        <span>{entry.date}</span>
-        <span>{entry.hours_handled}h</span>
-        {entry.is_auto_generated && (
-          <span className="text-indigo-500" title="Auto-generated from daily schedule">⚡ auto</span>
-        )}
-      </div>
-
-      {/* Notes */}
-      {entry.notes && (
-        <p className="text-xs text-gray-500 italic">"{entry.notes}"</p>
-      )}
-
-      {/* HOD remarks / actions (only for PENDING) */}
-      {isPending && (
-        <>
-          <input
-            type="text"
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-            placeholder="Remarks (optional)…"
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={() => handle('APPROVED')}
-              disabled={!!loading}
-              className="flex-1 bg-green-600 text-white rounded-lg py-1.5 text-sm font-medium hover:bg-green-700 disabled:opacity-50"
-            >
-              {loading === 'APPROVED' ? 'Approving…' : 'Approve'}
-            </button>
-            <button
-              onClick={() => handle('REJECTED')}
-              disabled={!!loading}
-              className="flex-1 bg-red-100 text-red-700 rounded-lg py-1.5 text-sm font-medium hover:bg-red-200 disabled:opacity-50"
-            >
-              {loading === 'REJECTED' ? 'Rejecting…' : 'Reject'}
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* Show existing remarks for non-pending */}
-      {!isPending && entry.remarks && (
-        <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 italic">
-          {entry.remarks}
-        </p>
-      )}
-    </div>
-  )
-}
-
 export default function HandlingVerificationInbox() {
   const [activeTab, setActiveTab] = useState('PENDING')
   const [allEntries, setAllEntries] = useState([])
   const [loading, setLoading] = useState(true)
+  const [remarksMap, setRemarksMap] = useState({})
+  const [actionLoading, setActionLoading] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -118,6 +30,19 @@ export default function HandlingVerificationInbox() {
   const counts = Object.fromEntries(
     TABS.map((t) => [t, allEntries.filter((e) => e.status === t).length])
   )
+
+  const takeAction = async (entryId, status) => {
+    const key = `${entryId}-${status}`
+    setActionLoading(key)
+    try {
+      await verifyHandling(entryId, { status, remarks: remarksMap[entryId] ?? '' })
+      load()
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Action failed.')
+    } finally {
+      setActionLoading('')
+    }
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -159,22 +84,84 @@ export default function HandlingVerificationInbox() {
         ))}
       </div>
 
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">Pending: {counts.PENDING ?? 0}</div>
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">Approved: {counts.APPROVED ?? 0}</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">Rejected: {counts.REJECTED ?? 0}</div>
+      </div>
+
       {/* Content */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-36 bg-gray-100 rounded-xl animate-pulse" />
-          ))}
-        </div>
+        <div className="h-24 bg-gray-100 rounded-xl animate-pulse" />
       ) : visible.length === 0 ? (
         <div className="text-center py-14 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-xl">
           No {activeTab.toLowerCase()} entries.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {visible.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} onAction={load} />
-          ))}
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="max-h-[70vh] overflow-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead className="sticky top-0 z-10 bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Faculty</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Topic</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Hours</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {visible.map((entry) => {
+                const isPending = entry.status === 'PENDING'
+                return (
+                  <tr key={entry.id}>
+                    <td className="px-4 py-3 text-gray-700">
+                      <div className="font-medium">{entry.faculty_name}</div>
+                      <div className="text-xs text-gray-500">{entry.course_code} - Sec {entry.section}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      <div>{entry.topic_title}</div>
+                      <div className="text-xs text-gray-500">{entry.unit_title}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{entry.date}</td>
+                    <td className="px-4 py-3 text-gray-700">{entry.hours_handled}h</td>
+                    <td className="px-4 py-3"><Badge label={entry.status} variant={VARIANT[entry.status]} /></td>
+                    <td className="px-4 py-3">
+                      {isPending ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="text"
+                            value={remarksMap[entry.id] ?? ''}
+                            onChange={(e) => setRemarksMap((p) => ({ ...p, [entry.id]: e.target.value }))}
+                            placeholder="Remarks"
+                            className="border border-gray-200 rounded px-2 py-1 text-xs"
+                          />
+                          <button
+                            onClick={() => takeAction(entry.id, 'APPROVED')}
+                            disabled={actionLoading === `${entry.id}-APPROVED`}
+                            className="bg-green-600 text-white rounded px-2.5 py-1 text-xs font-medium hover:bg-green-700"
+                          >
+                            {actionLoading === `${entry.id}-APPROVED` ? '...' : 'Approve'}
+                          </button>
+                          <button
+                            onClick={() => takeAction(entry.id, 'REJECTED')}
+                            disabled={actionLoading === `${entry.id}-REJECTED`}
+                            className="bg-red-100 text-red-700 rounded px-2.5 py-1 text-xs font-medium hover:bg-red-200"
+                          >
+                            {actionLoading === `${entry.id}-REJECTED` ? '...' : 'Reject'}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-500">{entry.remarks || '-'}</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          </div>
         </div>
       )}
     </div>

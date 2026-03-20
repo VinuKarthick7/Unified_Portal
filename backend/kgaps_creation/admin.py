@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Domain, Unit, Topic, Material, MaterialVerification
+from .models import Domain, Unit, Topic, TopicAssignment, Material, MaterialVerification
 
 
 @admin.register(Domain)
@@ -26,6 +26,13 @@ class TopicAdmin(admin.ModelAdmin):
     list_display = ['topic_title', 'unit', 'planned_hours', 'order']
     list_filter = ['unit__course']
     search_fields = ['topic_title']
+
+
+@admin.register(TopicAssignment)
+class TopicAssignmentAdmin(admin.ModelAdmin):
+    list_display = ['topic', 'faculty', 'assigned_by', 'created_at']
+    list_filter = ['topic__unit__course']
+    search_fields = ['topic__topic_title', 'faculty__first_name', 'faculty__last_name', 'faculty__email']
 
 
 @admin.register(Material)

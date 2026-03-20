@@ -13,10 +13,13 @@ class CourseListCreateView(generics.ListCreateAPIView):
     serializer_class = CourseSerializer
 
     def get_queryset(self):
+        user = self.request.user
         qs = Course.objects.prefetch_related('departments').filter(is_active=True)
         dept = self.request.query_params.get('department')
         if dept:
             qs = qs.filter(departments=dept)
+        elif user.role == 'HOD' and user.department_id:
+            qs = qs.filter(departments=user.department)
         return qs
 
     def get_permissions(self):

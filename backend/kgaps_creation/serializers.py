@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Domain, Unit, Topic, Material, MaterialVerification
+from .models import Domain, Unit, Topic, TopicAssignment, Material, MaterialVerification
 
 
 class DomainSerializer(serializers.ModelSerializer):
@@ -18,12 +18,43 @@ class DomainSerializer(serializers.ModelSerializer):
 
 class MaterialVerificationSerializer(serializers.ModelSerializer):
     verified_by_name = serializers.CharField(source='verified_by.get_full_name', read_only=True)
+    material_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = MaterialVerification
-        fields = ['id', 'material', 'verified_by', 'verified_by_name',
+        fields = ['id', 'material', 'material_detail', 'verified_by', 'verified_by_name',
                   'status', 'remarks', 'verified_at']
         read_only_fields = ['id', 'verified_at']
+
+    def get_material_detail(self, obj):
+        return {
+            'id': obj.material_id,
+            'title': obj.material.title,
+            'material_type': obj.material.material_type,
+            'topic': obj.material.topic_id,
+            'topic_title': obj.material.topic.topic_title,
+            'uploaded_by': obj.material.uploaded_by_id,
+            'uploaded_by_name': obj.material.uploaded_by.get_full_name() if obj.material.uploaded_by else '',
+            'file_url': obj.material.file_url.url if obj.material.file_url else '',
+            'external_url': obj.material.external_url,
+        }
+
+
+class TopicAssignmentSerializer(serializers.ModelSerializer):
+    faculty_name = serializers.CharField(source='faculty.get_full_name', read_only=True)
+    faculty_email = serializers.CharField(source='faculty.email', read_only=True)
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TopicAssignment
+        fields = [
+            'id', 'topic', 'faculty', 'faculty_name', 'faculty_email',
+            'assigned_by', 'created_at', 'status',
+        ]
+        read_only_fields = ['id', 'assigned_by', 'created_at', 'status']
+
+    def get_status(self, obj):
+        return obj.status
 
 
 class MaterialSerializer(serializers.ModelSerializer):
@@ -49,6 +80,8 @@ class TopicSerializer(serializers.ModelSerializer):
     course_code = serializers.CharField(source='unit.course.code', read_only=True)
     # Hours handled so far (sum of ALL approved handling entries for this topic)
     hours_handled = serializers.SerializerMethodField()
+    assignments = TopicAssignmentSerializer(many=True, read_only=True)
+    my_upload_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Topic
@@ -56,7 +89,7 @@ class TopicSerializer(serializers.ModelSerializer):
             'id', 'unit', 'unit_title', 'course_code',
             'topic_title', 'description',
             'planned_hours', 'learning_outcome',   # per-spec fields
-            'order', 'materials', 'hours_handled',
+            'order', 'materials', 'hours_handled', 'assignments', 'my_upload_status',
         ]
         read_only_fields = ['id']
 
@@ -67,6 +100,13 @@ class TopicSerializer(serializers.ModelSerializer):
             topic=obj, verification__status='APPROVED'
         ).aggregate(total=Sum('hours_handled'))['total']
         return float(result) if result else 0
+
+    def get_my_upload_status(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated or user.role != 'FACULTY':
+            return None
+        return obj.material_status_for_faculty(user.id)
 
 
 class UnitSerializer(serializers.ModelSerializer):

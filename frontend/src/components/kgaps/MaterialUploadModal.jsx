@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { uploadMaterial } from '../../api/kgaps'
+import { uploadMaterial, updateMaterial } from '../../api/kgaps'
 
 const MATERIAL_TYPES = [
   { value: 'PPT', label: 'Presentation (PPT)' },
@@ -9,11 +9,22 @@ const MATERIAL_TYPES = [
   { value: 'REFERENCE', label: 'Reference' },
 ]
 
-export default function MaterialUploadModal({ topic, onClose, onSuccess }) {
+/**
+ * MaterialUploadModal — handles both new upload and editing an existing material.
+ *
+ * Props:
+ *   topic        — the topic object (required for new uploads)
+ *   editMaterial — existing material object (pass this to enter edit mode)
+ *   onClose      — close handler
+ *   onSuccess    — called after a successful save
+ */
+export default function MaterialUploadModal({ topic, editMaterial, onClose, onSuccess }) {
+  const isEdit = !!editMaterial
+
   const [form, setForm] = useState({
-    material_type: 'NOTES',
-    title: '',
-    external_url: '',
+    material_type: editMaterial?.material_type ?? 'NOTES',
+    title: editMaterial?.title ?? '',
+    external_url: editMaterial?.external_url ?? '',
   })
   const [file, setFile] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -27,37 +38,51 @@ export default function MaterialUploadModal({ topic, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (!isLinkType && !file) {
+
+    // For new upload: file required unless link type
+    if (!isEdit && !isLinkType && !file) {
       setError('Please select a file to upload.')
       return
     }
+
     const fd = new FormData()
-    fd.append('topic', topic.id)
     fd.append('material_type', form.material_type)
     fd.append('title', form.title)
+
     if (isLinkType) {
       fd.append('external_url', form.external_url)
-    } else {
+    } else if (file) {
       fd.append('file_url', file)
     }
+
+    if (!isEdit) {
+      fd.append('topic', topic.id)
+    }
+
     setLoading(true)
     try {
-      await uploadMaterial(fd)
+      if (isEdit) {
+        await updateMaterial(editMaterial.id, fd)
+      } else {
+        await uploadMaterial(fd)
+      }
       onSuccess()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Upload failed. Please try again.')
+      setError(err.response?.data?.detail || (isEdit ? 'Update failed.' : 'Upload failed. Please try again.'))
     } finally {
       setLoading(false)
     }
   }
+
+  const topicTitle = isEdit ? editMaterial.topic_title : topic?.topic_title
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-gray-800">Upload Material</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{topic.topic_title}</p>
+            <h2 className="font-semibold text-gray-800">{isEdit ? 'Edit Material' : 'Upload Material'}</h2>
+            {topicTitle && <p className="text-xs text-gray-500 mt-0.5">{topicTitle}</p>}
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
         </div>
@@ -109,7 +134,19 @@ export default function MaterialUploadModal({ topic, onClose, onSuccess }) {
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">File</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                File
+                {isEdit && <span className="text-gray-400 font-normal ml-1">(leave blank to keep existing file)</span>}
+              </label>
+              {isEdit && editMaterial?.file_url && !file && (
+                <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1">
+                  <span>Current:</span>
+                  <a href={editMaterial.file_url} target="_blank" rel="noreferrer"
+                    className="text-blue-600 hover:underline truncate max-w-[220px]">
+                    View uploaded file
+                  </a>
+                </p>
+              )}
               <input
                 type="file"
                 onChange={(e) => setFile(e.target.files[0])}
@@ -131,7 +168,7 @@ export default function MaterialUploadModal({ topic, onClose, onSuccess }) {
               disabled={loading}
               className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? 'Uploading…' : 'Upload'}
+              {loading ? (isEdit ? 'Saving…' : 'Uploading…') : (isEdit ? 'Save Changes' : 'Upload')}
             </button>
           </div>
         </form>

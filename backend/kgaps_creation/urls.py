@@ -3,6 +3,7 @@ from .views import (
     DomainListCreateView, DomainDetailView,
     UnitListCreateView, UnitDetailView,
     TopicListCreateView, TopicDetailView,
+    TopicAssignmentListCreateView, TopicAssignmentDetailView,
     MaterialListCreateView, MaterialDetailView,
     VerificationQueueView, VerificationActionView,
     CourseStructureView,
@@ -23,6 +24,8 @@ urlpatterns = [
     # Topics
     path('topics/', TopicListCreateView.as_view(), name='topic_list'),
     path('topics/<int:pk>/', TopicDetailView.as_view(), name='topic_detail'),
+    path('topic-assignments/', TopicAssignmentListCreateView.as_view(), name='topic_assignment_list'),
+    path('topic-assignments/<int:pk>/', TopicAssignmentDetailView.as_view(), name='topic_assignment_detail'),
 
     # Materials
     path('materials/', MaterialListCreateView.as_view(), name='material_list'),

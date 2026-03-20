@@ -13,6 +13,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (user?.role === 'ADMIN') navigate('/admin-dashboard', { replace: true })
     if (user?.role === 'FACULTY') navigate('/faculty-dashboard', { replace: true })
+    if (user?.role === 'HOD') navigate('/hod-dashboard', { replace: true })
   }, [user?.role])
 
   useEffect(() => {

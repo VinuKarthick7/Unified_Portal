@@ -454,12 +454,12 @@ export default function FacultyDashboard() {
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {[
-                { label: 'Upload Material',  iconPath: IC.upload,    route: '/kgaps/creation',    color: C.amber,   count: pipeline.counts.upload },
-                { label: 'Log Teaching',      iconPath: IC.pencil,   route: '/scheduler',          color: C.sky,     count: summary.slots_today ?? 0 },
-                { label: 'View Tasks',        iconPath: IC.clipboard, route: '/tasks',              color: C.rose,    count: summary.tasks_pending ?? stats.tasks_pending ?? 0 },
-                { label: 'Teaching Progress', iconPath: IC.trending, route: '/kgaps/handling',     color: C.emerald, count: null },
-                { label: 'Appraisal',         iconPath: IC.chart,    route: '/appraisal',          color: C.indigo,  count: null },
-                { label: 'Swap Request',      iconPath: IC.swap,     route: '/scheduler/requests', color: C.violet,  count: null },
+                { label: 'Upload Material',  iconPath: IC.upload,    route: '/kgaps/creation',       color: C.amber,   count: pipeline.counts.upload },
+                { label: 'My Materials',      iconPath: IC.eye,       route: '/kgaps/creation?all=1', color: C.sky,     count: null },
+                { label: 'View Tasks',        iconPath: IC.clipboard, route: '/tasks',                color: C.rose,    count: summary.tasks_pending ?? stats.tasks_pending ?? 0 },
+                { label: 'Teaching Progress', iconPath: IC.trending,  route: '/kgaps/handling',       color: C.emerald, count: null },
+                { label: 'Appraisal',         iconPath: IC.chart,     route: '/appraisal',            color: C.indigo,  count: null },
+                { label: 'Swap Request',      iconPath: IC.swap,      route: '/scheduler/requests',   color: C.violet,  count: null },
               ].map(q => (
                 <button key={q.label} onClick={() => navigate(q.route)}
                   className="relative flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/70 hover:bg-white border border-transparent hover:border-gray-200 hover:shadow-md transition-all group">
@@ -891,12 +891,12 @@ export default function FacultyDashboard() {
               <SH>Quick Actions</SH>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: 'Upload Material',   iconPath: IC.upload,    route: '/kgaps/creation',   color: C.amber,   count: pipeline.counts.upload },
-                  { label: 'Log Teaching',       iconPath: IC.pencil,   route: '/scheduler',         color: C.sky,     count: null },
-                  { label: 'View Tasks',         iconPath: IC.clipboard, route: '/tasks',             color: C.rose,    count: summary.tasks_pending ?? stats.tasks_pending ?? 0 },
-                  { label: 'Swap Request',       iconPath: IC.swap,     route: '/scheduler/requests', color: C.violet, count: null },
-                  { label: 'Teaching Progress',  iconPath: IC.trending, route: '/kgaps/handling',     color: C.emerald, count: null },
-                  { label: 'Appraisal',          iconPath: IC.chart,    route: '/appraisal',          color: C.indigo,  count: null },
+                  { label: 'Upload Material',   iconPath: IC.upload,    route: '/kgaps/creation',        color: C.amber,   count: pipeline.counts.upload },
+                  { label: 'My Materials',       iconPath: IC.eye,       route: '/kgaps/creation?all=1',  color: C.sky,     count: null },
+                  { label: 'View Tasks',         iconPath: IC.clipboard, route: '/tasks',                 color: C.rose,    count: summary.tasks_pending ?? stats.tasks_pending ?? 0 },
+                  { label: 'Swap Request',       iconPath: IC.swap,      route: '/scheduler/requests',    color: C.violet,  count: null },
+                  { label: 'Teaching Progress',  iconPath: IC.trending,  route: '/kgaps/handling',        color: C.emerald, count: null },
+                  { label: 'Appraisal',          iconPath: IC.chart,     route: '/appraisal',             color: C.indigo,  count: null },
                 ].map(q => (
                   <button key={q.label}
                     onClick={() => navigate(q.route)}

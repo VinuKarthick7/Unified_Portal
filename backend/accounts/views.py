@@ -97,7 +97,7 @@ class FacultyListView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = User.objects.filter(is_active=True).select_related('department').order_by('first_name')
-        role = self.request.query_params.get('role', 'FACULTY')
+        role = self.request.query_params.get('role')
         if role:
             qs = qs.filter(role=role)
         department = self.request.query_params.get('department')

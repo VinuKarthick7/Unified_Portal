@@ -6,11 +6,11 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 
-from .models import Domain, Unit, Topic, Material, MaterialVerification
+from .models import Domain, Unit, Topic, TopicAssignment, Material, MaterialVerification
 from .serializers import (
     DomainSerializer,
     UnitSerializer, TopicSerializer,
-    MaterialSerializer, MaterialVerificationSerializer,
+    MaterialSerializer, MaterialVerificationSerializer, TopicAssignmentSerializer,
 )
 from accounts.permissions import IsAdmin, IsCoordinator
 
@@ -56,7 +56,7 @@ class UnitListCreateView(generics.ListCreateAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
-        return [IsCoordinator()]
+        return [IsAdmin()]
 
 
 class UnitDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -66,7 +66,7 @@ class UnitDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
-        return [IsCoordinator()]
+        return [IsAdmin()]
 
 
 # ── Topics ───────────────────────────────────────────────────────────────────
@@ -76,18 +76,31 @@ class TopicListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         qs = Topic.objects.select_related('unit', 'unit__course')
+        qs = qs.prefetch_related('assignments__faculty', 'materials__verification')
         unit = self.request.query_params.get('unit')
         course = self.request.query_params.get('course')
         if unit:
             qs = qs.filter(unit_id=unit)
         if course:
             qs = qs.filter(unit__course_id=course)
+        if self.request.user.role == 'FACULTY':
+            qs = qs.filter(assignments__faculty=self.request.user).distinct()
         return qs
 
     def get_permissions(self):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
         return [IsCoordinator()]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        unit = serializer.validated_data.get('unit')
+        if user.role == 'COORDINATOR':
+            owns = unit.course.domain and unit.course.domain.mentor_id == user.pk
+            if not owns:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('You can only add topics to courses in your own domain.')
+        serializer.save()
 
 
 class TopicDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -98,6 +111,22 @@ class TopicDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
         return [IsCoordinator()]
+
+    def _check_domain_ownership(self, topic):
+        user = self.request.user
+        if user.role == 'COORDINATOR':
+            owns = topic.unit.course.domain and topic.unit.course.domain.mentor_id == user.pk
+            if not owns:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('You can only modify topics for courses in your own domain.')
+
+    def perform_update(self, serializer):
+        self._check_domain_ownership(self.get_object())
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check_domain_ownership(instance)
+        instance.delete()
 
 
 # ── Materials ─────────────────────────────────────────────────────────────────
@@ -114,12 +143,8 @@ class MaterialListCreateView(generics.ListCreateAPIView):
         if topic:
             qs = qs.filter(topic_id=topic)
         if user.role == 'FACULTY':
-            # Faculty: only materials for courses they teach
-            from courses.models import CourseAssignment
-            assigned_course_ids = CourseAssignment.objects.filter(
-                faculty=user
-            ).values_list('course_id', flat=True)
-            qs = qs.filter(topic__unit__course_id__in=assigned_course_ids)
+            # Faculty: only materials for topics assigned to them
+            qs = qs.filter(topic__assignments__faculty=user).distinct()
         elif user.role == 'HOD' and user.department_id:
             # HOD: materials for courses offered to their student department
             qs = qs.filter(topic__unit__course__departments=user.department)
@@ -130,9 +155,75 @@ class MaterialListCreateView(generics.ListCreateAPIView):
 
     @transaction.atomic
     def perform_create(self, serializer):
+        topic = serializer.validated_data.get('topic')
+        user = self.request.user
+        if user.role == 'FACULTY':
+            is_assigned = topic.assignments.filter(faculty=user).exists()
+            if not is_assigned:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('You can upload material only for topics assigned to you.')
         material = serializer.save(uploaded_by=self.request.user)
         # Auto-create a PENDING verification record
         MaterialVerification.objects.create(material=material)
+
+
+class TopicAssignmentListCreateView(generics.ListCreateAPIView):
+    serializer_class = TopicAssignmentSerializer
+
+    def get_queryset(self):
+        from .models import TopicAssignment
+        qs = TopicAssignment.objects.select_related('topic__unit__course', 'faculty', 'assigned_by')
+        topic = self.request.query_params.get('topic')
+        course = self.request.query_params.get('course')
+        faculty = self.request.query_params.get('faculty')
+        if topic:
+            qs = qs.filter(topic_id=topic)
+        if course:
+            qs = qs.filter(topic__unit__course_id=course)
+        if faculty:
+            qs = qs.filter(faculty_id=faculty)
+        user = self.request.user
+        if user.role == 'COORDINATOR':
+            qs = qs.filter(topic__unit__course__domain__mentor=user)
+        elif user.role == 'FACULTY':
+            qs = qs.filter(faculty=user)
+        return qs
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsCoordinator()]
+
+    def perform_create(self, serializer):
+        topic = serializer.validated_data.get('topic')
+        faculty = serializer.validated_data.get('faculty')
+        user = self.request.user
+        owns = topic.unit.course.domain and topic.unit.course.domain.mentor_id == user.pk
+        if not owns:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You can only assign topics for courses in your own domain.')
+        from courses.models import CourseAssignment
+        teaches_course = CourseAssignment.objects.filter(
+            faculty=faculty, course=topic.unit.course
+        ).exists()
+        if not teaches_course:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError('Selected faculty is not assigned to this course.')
+        serializer.save(assigned_by=user)
+
+
+class TopicAssignmentDetailView(generics.DestroyAPIView):
+    queryset = TopicAssignment.objects.select_related('topic__unit__course')
+    serializer_class = TopicAssignmentSerializer
+    permission_classes = [IsCoordinator]
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+        owns = instance.topic.unit.course.domain and instance.topic.unit.course.domain.mentor_id == user.pk
+        if not owns:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You can only remove assignments in your own domain.')
+        instance.delete()
 
 
 class MaterialDetailView(generics.RetrieveUpdateDestroyAPIView):

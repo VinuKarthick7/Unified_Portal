@@ -15,7 +15,7 @@ from .serializers import (
     TaskAttachmentSerializer,
     SubTaskSerializer, TaskHistorySerializer,
 )
-from accounts.permissions import IsHOD
+from accounts.permissions import IsHOD, IsAdminOrHOD
 
 
 def _record_history(task, actor, action, detail=''):
@@ -30,7 +30,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsHOD()]
+            return [IsAdminOrHOD()]
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
@@ -62,7 +62,8 @@ class TaskListCreateView(generics.ListCreateAPIView):
             qs = qs.filter(status=status_f)
         if priority_f:
             qs = qs.filter(priority=priority_f)
-        if dept_f:
+        # Prevent HOD from overriding their dept scope via query param
+        if dept_f and user.role not in ('HOD', 'FACULTY'):
             qs = qs.filter(department_id=dept_f)
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q))
@@ -87,15 +88,21 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         return TaskCreateSerializer if self.request.method in ('PUT', 'PATCH') else TaskSerializer
 
     def get_queryset(self):
-        return Task.objects.select_related(
+        user = self.request.user
+        qs = Task.objects.select_related(
             'created_by', 'department'
         ).prefetch_related(
             'assignments__assignee', 'comments__author', 'attachments__uploaded_by'
         )
+        if user.role == 'FACULTY':
+            qs = qs.filter(assignments__assignee=user)
+        elif user.role == 'HOD' and user.department:
+            qs = qs.filter(Q(department=user.department) | Q(assignments__assignee=user))
+        return qs.distinct()
 
     def get_permissions(self):
         if self.request.method in ('PUT', 'PATCH', 'DELETE'):
-            return [IsHOD()]
+            return [IsAdminOrHOD()]
         return [IsAuthenticated()]
 
 

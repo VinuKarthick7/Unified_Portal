@@ -89,4 +89,4 @@ class FacultyMinimalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'email', 'department', 'department_name']
+        fields = ['id', 'first_name', 'last_name', 'email', 'role', 'department', 'department_name']

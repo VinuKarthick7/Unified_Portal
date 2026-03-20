@@ -71,6 +71,49 @@ class Topic(models.Model):
     def __str__(self):
         return f"{self.topic_title} (Unit {self.unit.unit_number})"
 
+    def material_status_for_faculty(self, faculty_id):
+        """
+        3-state professional status for a topic assigned to a specific faculty:
+        1) NOT_UPLOADED
+        2) PENDING_VERIFICATION
+        3) VERIFIED
+        """
+        mats = self.materials.filter(uploaded_by_id=faculty_id)
+        if mats.filter(verification__status=MaterialVerification.Status.APPROVED).exists():
+            return 'VERIFIED'
+        if mats.filter(verification__status=MaterialVerification.Status.PENDING).exists():
+            return 'PENDING_VERIFICATION'
+        return 'NOT_UPLOADED'
+
+
+class TopicAssignment(models.Model):
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name='assignments')
+    faculty = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='assigned_topics',
+        limit_choices_to={'role': 'FACULTY'},
+    )
+    assigned_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_topic_assignments',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ('topic', 'faculty')
+
+    def __str__(self):
+        return f"{self.topic.topic_title} -> {self.faculty.get_full_name()}"
+
+    @property
+    def status(self):
+        return self.topic.material_status_for_faculty(self.faculty_id)
+
 
 class Material(models.Model):
     class MaterialType(models.TextChoices):

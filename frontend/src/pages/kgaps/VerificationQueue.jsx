@@ -51,6 +51,12 @@ export default function VerificationQueue() {
         </p>
       </div>
 
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">Pending: {items.filter(i => i.status === 'PENDING').length}</div>
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">Approved: {items.filter(i => i.status === 'APPROVED').length}</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">Rejected: {items.filter(i => i.status === 'REJECTED').length}</div>
+      </div>
+
       {error && (
         <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>
       )}
@@ -81,94 +87,74 @@ export default function VerificationQueue() {
           No {activeStatus.toLowerCase()} materials.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="max-h-[70vh] overflow-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead className="sticky top-0 z-10 bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Topic</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Faculty</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Material</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
           {items.map((item) => {
-            const mat = item.material
+            const mat = item.material_detail
             const isActionable = activeStatus === 'PENDING'
             return (
-              <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-5">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-800 text-sm">
-                        {mat?.title}
-                      </span>
-                      <Badge
-                        label={mat?.material_type}
-                        variant="info"
-                      />
-                      <Badge
-                        label={item.status}
-                        variant={item.status.toLowerCase()}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Topic: <span className="font-medium">{mat?.topic?.topic_title ?? `#${mat?.topic}`}</span>
-                      {' · '}Uploaded by: <span className="font-medium">{mat?.uploaded_by_name}</span>
-                    </p>
-                    {item.remarks && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Remarks: <span className="italic">{item.remarks}</span>
-                      </p>
-                    )}
+              <tr key={item.id}>
+                <td className="px-4 py-3 text-gray-700">{mat?.topic_title ?? `#${mat?.topic}`}</td>
+                <td className="px-4 py-3 text-gray-700">{mat?.uploaded_by_name || 'Unknown'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-800">{mat?.title}</span>
+                    <Badge label={mat?.material_type} variant="info" />
                   </div>
-
-                  <div className="flex gap-2 shrink-0">
+                </td>
+                <td className="px-4 py-3"><Badge label={item.status} variant={item.status.toLowerCase()} /></td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     {mat?.file_url && (
-                      <a
-                        href={mat.file_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs bg-gray-50 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100"
-                      >
-                        View File
-                      </a>
+                      <a href={mat.file_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">View File</a>
                     )}
                     {mat?.external_url && (
-                      <a
-                        href={mat.external_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs bg-gray-50 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100"
-                      >
-                        Open Link
-                      </a>
+                      <a href={mat.external_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">Open Link</a>
+                    )}
+                    {isActionable && (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Remarks"
+                          value={remarksMap[item.id] ?? ''}
+                          onChange={(e) => setRemarksMap((p) => ({ ...p, [item.id]: e.target.value }))}
+                          className="border border-gray-200 rounded px-2 py-1 text-xs"
+                        />
+                        <button
+                          onClick={() => handleAction(item.id, 'APPROVED')}
+                          disabled={actionLoading === item.id + 'APPROVED'}
+                          className="bg-green-600 text-white px-2.5 py-1 rounded text-xs font-medium hover:bg-green-700 disabled:opacity-50"
+                        >
+                          {actionLoading === item.id + 'APPROVED' ? '...' : 'Approve'}
+                        </button>
+                        <button
+                          onClick={() => handleAction(item.id, 'REJECTED')}
+                          disabled={actionLoading === item.id + 'REJECTED'}
+                          className="bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded text-xs font-medium hover:bg-red-100 disabled:opacity-50"
+                        >
+                          {actionLoading === item.id + 'REJECTED' ? '...' : 'Reject'}
+                        </button>
+                      </>
                     )}
                   </div>
-                </div>
-
-                {isActionable && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <input
-                      type="text"
-                      placeholder="Remarks (optional)"
-                      value={remarksMap[item.id] ?? ''}
-                      onChange={(e) =>
-                        setRemarksMap((p) => ({ ...p, [item.id]: e.target.value }))
-                      }
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleAction(item.id, 'APPROVED')}
-                        disabled={actionLoading === item.id + 'APPROVED'}
-                        className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {actionLoading === item.id + 'APPROVED' ? 'Saving…' : 'Approve'}
-                      </button>
-                      <button
-                        onClick={() => handleAction(item.id, 'REJECTED')}
-                        disabled={actionLoading === item.id + 'REJECTED'}
-                        className="bg-red-50 text-red-700 border border-red-200 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100 disabled:opacity-50"
-                      >
-                        {actionLoading === item.id + 'REJECTED' ? 'Saving…' : 'Reject'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </td>
+              </tr>
             )
           })}
+            </tbody>
+          </table>
+          </div>
         </div>
       )}
     </div>

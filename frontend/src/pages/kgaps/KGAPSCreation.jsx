@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getCourses, getMyAssignments } from '../../api/core'
 import { getCourseStructure } from '../../api/kgaps'
 import SyllabusTree from '../../components/kgaps/SyllabusTree'
@@ -58,14 +59,16 @@ function applySortFilter(courses, { search, deptId, sem, sort }) {
 export default function KGAPSCreation() {
   const { user } = useAuth()
   const isFaculty = user?.role === 'FACULTY'
+  const isCoordinator = user?.role === 'COORDINATOR'
 
+  const [searchParams] = useSearchParams()
   const [rawCourses, setRawCourses] = useState([])
   const [selectedId, setSelectedId] = useState('')
   const [units, setUnits] = useState([])
   const [loading, setLoading] = useState(false)
   const [coursesLoading, setCoursesLoading] = useState(true)
   const [error, setError] = useState('')
-  const [showAllTopics, setShowAllTopics] = useState(false)
+  const [showAllTopics, setShowAllTopics] = useState(() => searchParams.get('all') === '1')
 
   // filter / sort state
   const [search, setSearch]   = useState('')
@@ -165,15 +168,34 @@ export default function KGAPSCreation() {
     <div className="p-6 max-w-6xl mx-auto space-y-5">
 
       {/* ── Header ── */}
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">
+      <div className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-sky-50 to-cyan-50 p-5">
+        <h1 className="text-2xl font-bold text-gray-900">
           {isFaculty ? 'Material Upload' : 'Syllabus Structure'}
         </h1>
-        <p className="text-sm text-gray-400 mt-0.5">
+        <p className="text-sm text-gray-600 mt-1">
           {isFaculty
             ? 'Upload materials for topics assigned to you. Topics that still need materials are highlighted.'
             : 'Browse units, topics, and materials for any course. Use the filters below to search efficiently.'}
         </p>
+
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-lg bg-white/80 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-gray-500">Courses</div>
+            <div className="text-lg font-semibold text-gray-900">{rawCourses.length}</div>
+          </div>
+          <div className="rounded-lg bg-white/80 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-gray-500">Units</div>
+            <div className="text-lg font-semibold text-gray-900">{units.length}</div>
+          </div>
+          <div className="rounded-lg bg-white/80 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-gray-500">Topics</div>
+            <div className="text-lg font-semibold text-gray-900">{totalTopics}</div>
+          </div>
+          <div className="rounded-lg bg-white/80 px-3 py-2">
+            <div className="text-[11px] uppercase tracking-wide text-gray-500">Need Upload</div>
+            <div className="text-lg font-semibold text-gray-900">{isFaculty ? needUploadTopics : '-'}</div>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -377,6 +399,9 @@ export default function KGAPSCreation() {
           <SyllabusTree
             units={displayUnits}
             onRefresh={() => loadStructure(selectedId)}
+            onMaterialUploaded={() => setShowAllTopics(true)}
+            courseId={selectedId ? Number(selectedId) : null}
+            isCoordinator={isCoordinator}
           />
         )
       ) : (

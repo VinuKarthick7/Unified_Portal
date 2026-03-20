@@ -16,10 +16,19 @@ export const createTopic = (data) => api.post('/kgaps/creation/topics/', data)
 export const updateTopic = (id, data) => api.patch(`/kgaps/creation/topics/${id}/`, data)
 export const deleteTopic = (id) => api.delete(`/kgaps/creation/topics/${id}/`)
 
+// Topic assignments
+export const getTopicAssignments = (params) => api.get('/kgaps/creation/topic-assignments/', { params })
+export const createTopicAssignment = (data) => api.post('/kgaps/creation/topic-assignments/', data)
+export const deleteTopicAssignment = (id) => api.delete(`/kgaps/creation/topic-assignments/${id}/`)
+
 // Materials
 export const getMaterials = (params) => api.get('/kgaps/creation/materials/', { params })
 export const uploadMaterial = (formData) =>
   api.post('/kgaps/creation/materials/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+export const updateMaterial = (id, formData) =>
+  api.patch(`/kgaps/creation/materials/${id}/`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 export const deleteMaterial = (id) => api.delete(`/kgaps/creation/materials/${id}/`)

@@ -26,6 +26,7 @@ import Analytics from './pages/analytics/Analytics'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import AcademicCalendar from './pages/scheduler/AcademicCalendar'
 import FacultyDashboard from './pages/dashboard/FacultyDashboard'
+import HODDashboard from './pages/dashboard/HODDashboard'
 import Notifications from './pages/notifications/Notifications'
 import Profile from './pages/profile/Profile'
 import Forbidden from './pages/errors/Forbidden'
@@ -96,7 +97,7 @@ function App() {
             <Route
               path="/tasks/new"
               element={
-                <ProtectedRoute allowedRoles={['HOD']}>
+                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
                   <TaskForm />
                 </ProtectedRoute>
               }
@@ -105,7 +106,7 @@ function App() {
             <Route
               path="/tasks/:id/edit"
               element={
-                <ProtectedRoute allowedRoles={['HOD']}>
+                <ProtectedRoute allowedRoles={['ADMIN', 'HOD']}>
                   <TaskForm />
                 </ProtectedRoute>
               }
@@ -161,6 +162,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['FACULTY']}>
                   <FacultyDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hod-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['HOD']}>
+                  <HODDashboard />
                 </ProtectedRoute>
               }
             />

@@ -477,11 +477,11 @@ class TaskAnalyticsView(APIView):
             priority_dist = list(task_qs.values('priority').annotate(count=Count('id')))
             priority_data = [{'name': r['priority'], 'value': r['count']} for r in priority_dist]
 
-            # Per-department task counts
+            # Per-department task counts (include institution-wide tasks, department=NULL)
             dept_data = []
             dept_qs = Department.objects.all() if not dept else Department.objects.filter(id=dept.id)
             for d in dept_qs:
-                tq = Task.objects.filter(department=d)
+                tq = Task.objects.filter(Q(department=d) | Q(department__isnull=True))
                 dept_data.append({
                     'dept': d.code,
                     'open': tq.filter(status='OPEN').count(),
@@ -524,7 +524,7 @@ class WorkloadTrendView(APIView):
         today = date.today()
         six_months_ago = month_offset(today, 5)
 
-        qs = TopicHandling.objects.filter(date__gte=six_months_ago)
+        qs = TopicHandling.objects.filter(date__gte=six_months_ago, verification__status='APPROVED')
         if user.role == 'FACULTY':
             qs = qs.filter(faculty=user)
         elif dept:
@@ -578,7 +578,7 @@ class DepartmentOverviewView(APIView):
         for d in dept_qs:
             fac_ids = User.objects.filter(role='FACULTY', department=d).values_list('id', flat=True)
             faculty_count = len(fac_ids)
-            total_hours   = TopicHandling.objects.filter(faculty__in=fac_ids).aggregate(h=Sum('hours_handled'))['h'] or 0
+            total_hours   = TopicHandling.objects.filter(faculty__in=fac_ids, verification__status='APPROVED').aggregate(h=Sum('hours_handled'))['h'] or 0
             task_total     = Task.objects.filter(department=d).count()
             task_completed = Task.objects.filter(department=d, status='COMPLETED').count()
             task_overdue   = Task.objects.filter(department=d, due_date__lt=today).exclude(status__in=['COMPLETED','CANCELLED']).count()
